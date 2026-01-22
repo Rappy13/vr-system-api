@@ -10,9 +10,8 @@ WORKDIR /app
 # 複製所有文件到容器
 COPY . .
 
-# 暴露端口（Render 使用 10000）
+# 暴露端口
 EXPOSE 10000
 
-# 啟動 PHP 內建伺服器
-# Render 會自動設置 PORT 環境變數為 10000
-CMD php -S 0.0.0.0:${PORT:-10000} -t public
+# 使用 router.php 啟動 PHP 內建伺服器
+CMD php -S 0.0.0.0:${PORT:-10000} router.php

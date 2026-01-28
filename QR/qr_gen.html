@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FireAway QR Code 生成器</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -106,17 +105,9 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
-        #json-output {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            word-wrap: break-word;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: #333;
-            max-height: 150px;
-            overflow-y: auto;
+        #qrcode canvas {
+            display: block;
+            margin: 0 auto;
         }
 
         .success-message {
@@ -138,7 +129,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>FireAway QR Code</h1>
+        <h1>使用者資料</h1>
         
         <form id="Form">
             <div class="form-group">
@@ -152,8 +143,8 @@
             </div>
 
             <div class="form-group">
-                <label for="Id">編號 *</label>
-                <input type="text" id="Id" name="Id" required placeholder="請輸入編號(若有)">
+                <label for="Id">ID(五位以上，未滿會自動生成) *</label>
+                <input type="text" id="Id" name="Id" required placeholder="請輸入ID" maxlength="10">
             </div>
 
             <div class="form-group">
@@ -167,57 +158,86 @@
             </div>
 
             <button type="submit">生成 QR Code</button>
+            
+            <p style="margin-top: 15px; font-size: 12px; color: #999; text-align: center;">
+                本網頁只提供 APP 讀取用 QR 生成，不會儲存資料至任何地方。
+            </p>
         </form>
 
         <div id="qrcode-container">
             <div id="qrcode"></div>
-            <div class="success-message">QR Code 已生成！</div>
-            <div id="json-output"></div>
+            <div class="success-message">✅ QR Code 已生成！</div>
             <button class="reset-btn" onclick="resetForm()">重新輸入</button>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script>
-        let qrcode = null;
+        // 生成5碼大寫英數亂數
+        function generateRandomId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 5; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // 頁面載入時預填入員工編號
+        window.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('Id').value = generateRandomId();
+        });
 
         document.getElementById('Form').addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // 取得員工編號，如果小於5碼則自動生成新的
+            let Id = document.getElementById('Id').value.trim();
+            if (Id.length < 5) {
+                Id = generateRandomId();
+                document.getElementById('Id').value = Id;
+            }
 
             // 收集表單資料
             const Data = {
                 name: document.getElementById('name').value,
                 age: parseInt(document.getElementById('age').value),
-                Id: document.getElementById('Id').value,
+                Id: Id,
                 gender: document.getElementById('gender').value
             };
 
             // 轉換為 JSON 字串
             const jsonString = JSON.stringify(Data);
 
-            // 顯示 JSON 輸出
-            document.getElementById('json-output').textContent = jsonString;
-
             // 清除舊的 QR Code
             document.getElementById('qrcode').innerHTML = '';
 
             // 生成新的 QR Code
-            qrcode = new QRCode(document.getElementById('qrcode'), {
-                text: jsonString,
-                width: 256,
-                height: 256,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            const canvas = document.createElement('canvas');
+            document.getElementById('qrcode').appendChild(canvas);
 
-            // 顯示 QR Code 容器，隱藏表單
-            document.getElementById('Form').style.display = 'none';
-            document.getElementById('qrcode-container').style.display = 'block';
+            try {
+                const qr = new QRious({
+                    element: canvas,
+                    value: jsonString,
+                    size: 256,
+                    level: 'H'
+                });
+
+                // 顯示 QR Code 容器，隱藏表單
+                document.getElementById('Form').style.display = 'none';
+                document.getElementById('qrcode-container').style.display = 'block';
+            } catch (error) {
+                alert('生成 QR Code 時發生錯誤：' + error.message);
+                console.error('QR Code error:', error);
+            }
         });
 
         function resetForm() {
             // 重置表單
             document.getElementById('Form').reset();
+            // 重新生成員工編號
+            document.getElementById('Id').value = generateRandomId();
             document.getElementById('Form').style.display = 'block';
             document.getElementById('qrcode-container').style.display = 'none';
         }

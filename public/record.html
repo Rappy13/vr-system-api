@@ -304,7 +304,7 @@ async function doQuery() {
 
     // Step 2: VR Records
     log('📋 載入訓練紀錄…', 'spin');
-    const recRes  = await fetch(`${BASE}/api/load_vr_record.php?player_id=${encodeURIComponent(objectId)}`);
+    const recRes  = await fetch(`${BASE}/api/load_vr_record.php?user=${encodeURIComponent(objectId)}`);
     const recJson = await recRes.json();
 
     if (!recJson.success || !recJson.data?.length) {

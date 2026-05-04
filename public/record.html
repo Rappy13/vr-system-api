@@ -333,7 +333,7 @@ async function doQuery() {
       log(`📋 處理第 ${i + 1} / ${filtered.length} 筆紀錄（共 ${dataItems.length} 次操作）…`, 'spin');
 
       const sceneId   = parseInt(rec.scene ?? 0);
-      const feMap    = { 0:'未選擇', 1:'乾粉滅火器', 2:'CO₂滅火器', 3:'泡沫滅火器', 4:'水霧滅火器' };
+      const feMap    = { 0:'乾粉滅火器', 1:'CO₂滅火器', 2:'水滅火器', 3:'住宅用滅火器' };
       const sceneMap = { 0:'未知', 1:'場景 A', 2:'場景 B', 3:'場景 C', 4:'場景 D' };
 
       for (let j = 0; j < dataItems.length; j++) {

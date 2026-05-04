@@ -326,66 +326,72 @@ async function doQuery() {
     const results = [];
     for (let i = 0; i < filtered.length; i++) {
       const rec = filtered[i];
-      log(`⚙ 分析第 ${i + 1} / ${filtered.length} 筆…`, 'spin');
+      log(`📋 處理第 ${i + 1} / ${filtered.length} 筆紀錄（共 ${dataItems.length} 次操作）…`, 'spin');
 
       const pressRaw  = rec.press_data || '{}';
       const pressObj  = typeof pressRaw === 'string' ? JSON.parse(pressRaw) : pressRaw;
       const dataItems = pressObj.data || [];
       if (!dataItems.length) { log(`⚠ 第 ${i+1} 筆無 press_data，跳過`, 'warn'); continue; }
 
-      const gameData  = dataItems[0];
       const sceneId   = parseInt(rec.scene ?? 0);
-      const feId      = parseInt(gameData.FE_id ?? 0);
-      const timeLimit = parseFloat(gameData.FE_limit ?? 60);
-
-      let d = {};
-      try {
-        const aRes = await fetch(`${BASE}/api/analyze_details.php`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: [gameData], id: sceneId, FireExtin_id: feId, TimeLimit: timeLimit })
-        });
-        const aJson = await aRes.json();
-        d = aJson?.data ?? {};
-      } catch(e) { log(`⚠ 第 ${i+1} 筆分析請求失敗`, 'warn'); }
-
-      // Rating from is_perfect
-      const isPerfect = parseInt(gameData.is_perfect ?? 0);
-      const isSuccess = parseInt(gameData.is_success ?? 0);
-      const isSpWrong = parseInt(gameData.is_sp_wrong ?? 0);
-      let rating = '';
-      if      (!isSuccess)    rating = '失敗';
-      else if (isPerfect >= 3) rating = '🥇 金牌';
-      else if (isPerfect === 2) rating = '🥈 銀牌';
-      else if (isPerfect === 1) rating = '🥉 銅牌';
-      else                     rating = '完成';
-
       const feMap    = { 0:'未選擇', 1:'乾粉滅火器', 2:'CO₂滅火器', 3:'泡沫滅火器', 4:'水霧滅火器' };
       const sceneMap = { 0:'未知', 1:'場景 A', 2:'場景 B', 3:'場景 C', 4:'場景 D' };
-      const hideItems = d.hide_items;
-      const otherText = hideItems
-        ? (Array.isArray(hideItems) ? hideItems.join('、') : String(hideItems))
-        : '—';
 
-      results.push({
-        date:            rec.fake_time?.slice(0,10) || rec.created_at?.slice(0,10) || date,
-        player_id:       rec.player_id || '',
-        scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
-        count:           gameData.press_count ?? 0,
-        select_fe:       feMap[feId] ?? `滅火器${feId}`,
-        trial_in_20s:    d.check_start_time?.pass,
-        trial_outside:   d.check_first_distance?.pass,
-        trial_distance:  d.check_first_distance?.value ?? null,
-        fire_max_range:  d.check_second_distance?.pass,
-        fire_distance:   d.check_second_distance?.value ?? null,
-        no_oil_splash:   d.check_no_outfire?.pass,
-        no_intermittent: d.check_press_count?.pass,
-        is_success:      d.check_success?.pass ?? (isSuccess === 1),
-        kill_time:       d.kill_time || (parseFloat(gameData.kill_fire_time ?? 0).toFixed(2) + 's'),
-        sp_wrong:        d.special_error?.text || (isSpWrong ? '有' : '無'),
-        other_details:   otherText,
-        rating,
-      });
+      for (let j = 0; j < dataItems.length; j++) {
+        const gameData  = dataItems[j];
+        const feId      = parseInt(gameData.FE_id ?? 0);
+        const timeLimit = parseFloat(gameData.FE_limit ?? 60);
+
+        log(`⚙ 分析第 ${i + 1} 筆 / 操作 ${j + 1} / ${dataItems.length}…`, 'spin');
+
+        let d = {};
+        try {
+          const aRes = await fetch(`${BASE}/api/analyze_details.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: [gameData], id: sceneId, FireExtin_id: feId, TimeLimit: timeLimit })
+          });
+          const aJson = await aRes.json();
+          d = aJson?.data ?? {};
+        } catch(e) { log(`⚠ 第 ${i+1} 筆 / 操作 ${j+1} 分析請求失敗`, 'warn'); }
+
+        // Rating from is_perfect
+        const isPerfect = parseInt(gameData.is_perfect ?? 0);
+        const isSuccess = parseInt(gameData.is_success ?? 0);
+        const isSpWrong = parseInt(gameData.is_sp_wrong ?? 0);
+        let rating = '';
+        if      (!isSuccess)     rating = '失敗';
+        else if (isPerfect >= 3) rating = '🥇 金牌';
+        else if (isPerfect === 2) rating = '🥈 銀牌';
+        else if (isPerfect === 1) rating = '🥉 銅牌';
+        else                     rating = '完成';
+
+        const hideItems = d.hide_items;
+        const otherText = hideItems
+          ? (Array.isArray(hideItems) ? hideItems.join('、') : String(hideItems))
+          : '—';
+
+        results.push({
+          date:            rec.fake_time?.slice(0,10) || rec.created_at?.slice(0,10) || date,
+          player_id:       rec.player_id || '',
+          scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
+          sub_index:       dataItems.length > 1 ? j + 1 : null,
+          count:           gameData.press_count ?? 0,
+          select_fe:       feMap[feId] ?? `滅火器${feId}`,
+          trial_in_20s:    d.check_start_time?.pass,
+          trial_outside:   d.check_first_distance?.pass,
+          trial_distance:  d.check_first_distance?.value ?? null,
+          fire_max_range:  d.check_second_distance?.pass,
+          fire_distance:   d.check_second_distance?.value ?? null,
+          no_oil_splash:   d.check_no_outfire?.pass,
+          no_intermittent: d.check_press_count?.pass,
+          is_success:      d.check_success?.pass ?? (isSuccess === 1),
+          kill_time:       d.kill_time || (parseFloat(gameData.kill_fire_time ?? 0).toFixed(2) + 's'),
+          sp_wrong:        d.special_error?.text || (isSpWrong ? '有' : '無'),
+          other_details:   otherText,
+          rating,
+        });
+      }
     }
 
     if (!results.length) { showError('分析後無有效資料'); return; }
@@ -415,7 +421,7 @@ function renderTable() {
       <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
       <td>${esc(r.date)}</td>
       <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
-      <td>${esc(r.scene)}</td>
+      <td>${esc(r.scene)}${r.sub_index != null ? `<span style="color:var(--muted);font-size:.72rem;margin-left:.35rem">#${r.sub_index}</span>` : ''}</td>
       <td style="font-family:'Rajdhani',sans-serif">${r.count}</td>
       <td>${esc(r.select_fe)}</td>
       <td>${boolCell(r.trial_in_20s)}</td>

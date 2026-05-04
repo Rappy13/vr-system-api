@@ -8,327 +8,155 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:        #0a0e17;
-    --surface:   #111827;
-    --panel:     #161d2e;
-    --border:    #1e2d45;
-    --accent:    #00d4ff;
-    --accent2:   #ff6b35;
-    --success:   #22d3a0;
-    --warn:      #f59e0b;
-    --danger:    #ef4444;
-    --text:      #e2e8f0;
-    --muted:     #64748b;
-    --glow:      0 0 20px rgba(0,212,255,.25);
+    --bg:      #0a0e17;
+    --surface: #111827;
+    --panel:   #161d2e;
+    --border:  #1e2d45;
+    --accent:  #00d4ff;
+    --success: #22d3a0;
+    --danger:  #ef4444;
+    --warn:    #f59e0b;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --glow:    0 0 20px rgba(0,212,255,.25);
   }
-
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: 'Noto Sans TC', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
+    min-height: 100vh; overflow-x: hidden;
   }
-
-  /* ── Grid background ── */
   body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
+    content: ''; position: fixed; inset: 0;
     background-image:
       linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
   }
-
-  /* ════════════════════════════════════════
-     PAGE SYSTEM
-  ════════════════════════════════════════ */
   .page { display: none; position: relative; z-index: 1; min-height: 100vh; }
   .page.active { display: flex; }
 
-  /* ════════════════════════════════════════
-     PAGE 1 — LOGIN / SEARCH
-  ════════════════════════════════════════ */
-  #page-search {
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
-
+  /* ── PAGE 1 ── */
+  #page-search { align-items: center; justify-content: center; padding: 2rem; }
   .search-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 3rem 2.5rem;
-    width: 100%;
-    max-width: 460px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 3rem 2.5rem;
+    width: 100%; max-width: 460px;
     box-shadow: var(--glow), 0 24px 60px rgba(0,0,0,.5);
     animation: fadeUp .5s ease both;
   }
-
   @keyframes fadeUp {
     from { opacity:0; transform:translateY(24px); }
     to   { opacity:1; transform:translateY(0); }
   }
-
-  .logo-wrap {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
+  .logo-wrap { text-align: center; margin-bottom: 2.5rem; }
   .logo-icon {
     width: 60px; height: 60px;
     background: linear-gradient(135deg, var(--accent), #0088aa);
-    border-radius: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    margin-bottom: 1rem;
-    box-shadow: var(--glow);
+    border-radius: 14px; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 1rem; box-shadow: var(--glow);
   }
   .logo-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--accent);
-    text-transform: uppercase;
+    font-family: 'Rajdhani', sans-serif; font-size: 1.6rem;
+    font-weight: 700; letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
   }
-  .logo-sub {
-    font-size: .8rem;
-    color: var(--muted);
-    letter-spacing: 1px;
-    margin-top: .25rem;
-  }
-
+  .logo-sub { font-size: .8rem; color: var(--muted); letter-spacing: 1px; margin-top: .25rem; }
   .field-group { margin-bottom: 1.4rem; }
   .field-label {
-    display: block;
-    font-size: .75rem;
-    font-weight: 500;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: .5rem;
+    display: block; font-size: .75rem; font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: .5rem;
   }
   .field-input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: .75rem 1rem;
-    color: var(--text);
-    font-size: 1rem;
-    font-family: inherit;
-    transition: border-color .2s, box-shadow .2s;
-    outline: none;
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; color: var(--text);
+    font-size: 1rem; font-family: inherit;
+    transition: border-color .2s, box-shadow .2s; outline: none;
   }
-  .field-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0,212,255,.12);
-  }
+  .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.12); }
   .field-input::placeholder { color: var(--muted); }
-
-  /* date input colour fix */
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) opacity(.4);
-    cursor: pointer;
-  }
-
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.4); cursor: pointer; }
   .btn-query {
-    width: 100%;
-    padding: .85rem;
+    width: 100%; padding: .85rem;
     background: linear-gradient(135deg, var(--accent), #0099cc);
-    color: #000;
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 1px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: opacity .2s, transform .1s;
-    margin-top: .5rem;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 1.1rem;
+    color: #000; font-weight: 700; border: none; border-radius: 8px;
+    cursor: pointer; transition: opacity .2s, transform .1s;
+    font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; letter-spacing: 1px;
   }
-  .btn-query:hover  { opacity: .9; }
+  .btn-query:hover { opacity: .9; }
   .btn-query:active { transform: scale(.98); }
   .btn-query:disabled { opacity: .5; cursor: not-allowed; }
-
   .error-msg {
-    background: rgba(239,68,68,.1);
-    border: 1px solid rgba(239,68,68,.3);
-    color: #fca5a5;
-    border-radius: 8px;
-    padding: .7rem 1rem;
-    font-size: .85rem;
-    margin-top: 1rem;
-    display: none;
+    background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+    color: #fca5a5; border-radius: 8px; padding: .7rem 1rem;
+    font-size: .85rem; margin-top: 1rem; display: none;
   }
   .error-msg.show { display: block; animation: fadeUp .3s ease; }
-
-  /* loading spinner */
+  .progress-log {
+    margin-top: 1.2rem; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: .8rem 1rem; font-size: .78rem; color: var(--muted);
+    display: none; max-height: 150px; overflow-y: auto; line-height: 2;
+  }
+  .progress-log.show { display: block; }
+  .log-line { animation: fadeUp .2s ease; }
+  .log-ok   { color: var(--success); }
+  .log-spin { color: var(--accent); }
+  .log-warn { color: var(--warn); }
   .spinner {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid rgba(0,0,0,.3);
-    border-top-color: #000;
-    border-radius: 50%;
-    animation: spin .6s linear infinite;
-    margin-right: 8px;
-    vertical-align: middle;
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,.3); border-top-color: #000;
+    border-radius: 50%; animation: spin .6s linear infinite;
+    margin-right: 6px; vertical-align: middle;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ════════════════════════════════════════
-     PAGE 2 — RESULTS TABLE
-  ════════════════════════════════════════ */
-  #page-result {
-    flex-direction: column;
-    padding: 0;
-  }
-
-  /* Header bar */
+  /* ── PAGE 2 ── */
+  #page-result { flex-direction: column; }
   .result-header {
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    padding: 1rem 2rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
   }
   .btn-back {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: .4rem .9rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: .85rem;
-    font-family: inherit;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); padding: .4rem .9rem; border-radius: 6px;
+    cursor: pointer; font-size: .85rem; font-family: inherit;
     transition: border-color .2s, color .2s;
   }
   .btn-back:hover { border-color: var(--accent); color: var(--accent); }
-
-  .result-meta {
-    flex: 1;
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+  .result-meta { flex: 1; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
   .meta-chip {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: .3rem .8rem;
-    font-size: .8rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: .3rem .8rem; font-size: .8rem;
   }
   .meta-chip span { color: var(--accent); font-weight: 600; }
-
   .btn-export {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: .45rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: .85rem;
-    font-family: inherit;
-    transition: background .2s;
-    margin-left: auto;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: .45rem 1rem; border-radius: 6px;
+    cursor: pointer; font-size: .85rem; font-family: inherit;
+    transition: background .2s; margin-left: auto;
   }
   .btn-export:hover { background: var(--border); }
-
-  /* Table wrapper */
-  .table-wrap {
-    flex: 1;
-    overflow: auto;
-    padding: 1.5rem 2rem 3rem;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .82rem;
-    min-width: 1600px;
-  }
-
-  thead tr {
-    background: var(--panel);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
+  .table-wrap { flex: 1; overflow: auto; padding: 1.5rem 2rem 3rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 1700px; }
+  thead tr { background: var(--panel); position: sticky; top: 0; z-index: 10; }
   th {
-    padding: .7rem .9rem;
-    text-align: center;
-    font-size: .7rem;
-    font-weight: 600;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    color: var(--muted);
-    border-bottom: 2px solid var(--border);
-    white-space: nowrap;
+    padding: .7rem .9rem; text-align: center; font-size: .7rem;
+    font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--muted); border-bottom: 2px solid var(--border); white-space: nowrap;
   }
   th.accent { color: var(--accent); }
-
-  /* column group headers */
-  .col-group {
-    background: rgba(0,212,255,.04);
-    border-bottom: 1px solid rgba(0,212,255,.15);
-  }
-  .col-group th {
-    font-size: .68rem;
-    color: rgba(0,212,255,.6);
-    padding: .4rem;
-  }
-
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background .15s;
-  }
+  .col-group { background: rgba(0,212,255,.04); border-bottom: 1px solid rgba(0,212,255,.15); }
+  .col-group th { font-size: .68rem; color: rgba(0,212,255,.6); padding: .4rem; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
   tbody tr:hover { background: rgba(255,255,255,.025); }
   tbody tr:nth-child(even) { background: rgba(255,255,255,.012); }
-  tbody tr:nth-child(even):hover { background: rgba(255,255,255,.035); }
-
-  td {
-    padding: .65rem .9rem;
-    text-align: center;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  /* cell styles */
-  .cell-pass  { color: var(--success); font-weight: 600; }
-  .cell-fail  { color: var(--danger);  font-weight: 600; }
-  .cell-warn  { color: var(--warn);    font-weight: 600; }
-  .cell-gold  { color: #fbbf24; font-weight: 700; }
-  .cell-silver{ color: #94a3b8; font-weight: 700; }
-  .cell-bronze{ color: #cd7f32; font-weight: 700; }
-
-  .badge {
-    display: inline-block;
-    padding: .2rem .55rem;
-    border-radius: 4px;
-    font-size: .75rem;
-    font-weight: 600;
-  }
+  td { padding: .65rem .9rem; text-align: center; vertical-align: middle; white-space: nowrap; }
+  .badge { display: inline-block; padding: .2rem .55rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
   .badge-pass    { background: rgba(34,211,160,.15); color: var(--success); }
   .badge-fail    { background: rgba(239,68,68,.15);  color: var(--danger); }
   .badge-neutral { background: rgba(100,116,139,.15); color: var(--muted); }
-
-  /* row number */
-  td:first-child { color: var(--muted); font-size: .75rem; }
-
-  /* scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -337,9 +165,7 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     PAGE 1 – SEARCH
-══════════════════════════════════════ -->
+<!-- PAGE 1 -->
 <div id="page-search" class="page active">
   <div class="search-card">
     <div class="logo-wrap">
@@ -347,27 +173,22 @@
       <div class="logo-title">VR Fire Training</div>
       <div class="logo-sub">消防訓練紀錄查詢系統</div>
     </div>
-
     <div class="field-group">
       <label class="field-label" for="input-serial">學員代碼 / Serial Code</label>
       <input id="input-serial" class="field-input" type="text"
              placeholder="例如：TEST-001" autocomplete="off" spellcheck="false">
     </div>
-
     <div class="field-group">
       <label class="field-label" for="input-date">訓練日期</label>
       <input id="input-date" class="field-input" type="date">
     </div>
-
     <button id="btn-query" class="btn-query" onclick="doQuery()">查詢訓練紀錄</button>
-
     <div id="error-msg" class="error-msg"></div>
+    <div id="progress-log" class="progress-log"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     PAGE 2 – RESULT TABLE
-══════════════════════════════════════ -->
+<!-- PAGE 2 -->
 <div id="page-result" class="page">
   <div class="result-header">
     <button class="btn-back" onclick="goBack()">← 返回查詢</button>
@@ -378,9 +199,8 @@
     </div>
     <button class="btn-export" onclick="exportCSV()">⬇ 匯出 CSV</button>
   </div>
-
   <div class="table-wrap">
-    <table id="result-table">
+    <table>
       <thead>
         <tr class="col-group">
           <th colspan="1"></th>
@@ -410,176 +230,256 @@
           <th>綜合評定</th>
         </tr>
       </thead>
-      <tbody id="result-body">
-      </tbody>
+      <tbody id="result-body"></tbody>
     </table>
   </div>
 </div>
 
 <script>
-  // Set today as default date
-  document.getElementById('input-date').value = new Date().toISOString().slice(0,10);
+const BASE = 'https://vr-system-api.onrender.com';
+let lastData = null;
 
-  // Enter key submit
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('page-search').classList.contains('active')) {
-      doQuery();
+document.getElementById('input-date').value = new Date().toISOString().slice(0,10);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('page-search').classList.contains('active')) doQuery();
+});
+
+function log(msg, type = '') {
+  const box = document.getElementById('progress-log');
+  box.classList.add('show');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (type ? ' log-' + type : '');
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+function clearLog() {
+  const box = document.getElementById('progress-log');
+  box.innerHTML = '';
+  box.classList.remove('show');
+}
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('show');
+}
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+function goBack() {
+  showPage('search');
+  document.getElementById('error-msg').classList.remove('show');
+  clearLog();
+}
+
+async function doQuery() {
+  const serial = document.getElementById('input-serial').value.trim();
+  const date   = document.getElementById('input-date').value;
+  const btn    = document.getElementById('btn-query');
+
+  document.getElementById('error-msg').classList.remove('show');
+  clearLog();
+
+  if (!serial) { showError('請輸入學員代碼'); return; }
+  if (!date)   { showError('請選擇日期');     return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>查詢中…';
+
+  try {
+    // Step 1: License → objectId
+    log('🔍 查詢學員資料…', 'spin');
+    const licRes  = await fetch(`${BASE}/api/load_license.php?serial_code=${encodeURIComponent(serial)}`);
+    const licJson = await licRes.json();
+
+    if (!licJson.success || !licJson.data) {
+      showError('找不到該學員代碼，請確認後重試');
+      return;
     }
-  });
+    const licData  = Array.isArray(licJson.data) ? licJson.data[0] : licJson.data;
+    const objectId = licData.objectId;
+    if (!objectId) { showError('無法取得學員 ObjectId'); return; }
+    log(`✔ 找到學員，ObjectId: ${objectId}`, 'ok');
 
-  let lastData = null;
+    // Step 2: VR Records
+    log('📋 載入訓練紀錄…', 'spin');
+    const recRes  = await fetch(`${BASE}/api/load_vr_record.php?player_id=${encodeURIComponent(objectId)}`);
+    const recJson = await recRes.json();
 
-  async function doQuery() {
-    const serial = document.getElementById('input-serial').value.trim();
-    const date   = document.getElementById('input-date').value;
-    const errEl  = document.getElementById('error-msg');
-    const btn    = document.getElementById('btn-query');
+    if (!recJson.success || !recJson.data?.length) {
+      showError('該學員查無任何訓練紀錄');
+      return;
+    }
 
-    errEl.classList.remove('show');
+    // Step 3: Date filter
+    const filtered = recJson.data.filter(r =>
+      (r.fake_time || r.created_at || '').slice(0, 10) === date
+    );
+    if (!filtered.length) {
+      showError(`在 ${date} 查無訓練紀錄（共有 ${recJson.data.length} 筆其他日期紀錄）`);
+      return;
+    }
+    log(`✔ 找到 ${filtered.length} 筆紀錄，開始分析…`, 'ok');
 
-    if (!serial) { showError('請輸入學員代碼'); return; }
-    if (!date)   { showError('請選擇日期');     return; }
+    // Step 4: analyze_details per record
+    const results = [];
+    for (let i = 0; i < filtered.length; i++) {
+      const rec = filtered[i];
+      log(`⚙ 分析第 ${i + 1} / ${filtered.length} 筆…`, 'spin');
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>查詢中…';
+      const pressRaw  = rec.press_data || '{}';
+      const pressObj  = typeof pressRaw === 'string' ? JSON.parse(pressRaw) : pressRaw;
+      const dataItems = pressObj.data || [];
+      if (!dataItems.length) { log(`⚠ 第 ${i+1} 筆無 press_data，跳過`, 'warn'); continue; }
 
-    try {
-      const res = await fetch('api/query.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serial_code: serial, date: date })
+      const gameData  = dataItems[0];
+      const sceneId   = parseInt(rec.scene ?? 0);
+      const feId      = parseInt(gameData.FE_id ?? 0);
+      const timeLimit = parseFloat(gameData.FE_limit ?? 60);
+
+      let d = {};
+      try {
+        const aRes = await fetch(`${BASE}/api/analyze_details.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: [gameData], id: sceneId, FireExtin_id: feId, TimeLimit: timeLimit })
+        });
+        const aJson = await aRes.json();
+        d = aJson?.data ?? {};
+      } catch(e) { log(`⚠ 第 ${i+1} 筆分析請求失敗`, 'warn'); }
+
+      // Rating from is_perfect
+      const isPerfect = parseInt(gameData.is_perfect ?? 0);
+      const isSuccess = parseInt(gameData.is_success ?? 0);
+      const isSpWrong = parseInt(gameData.is_sp_wrong ?? 0);
+      let rating = '';
+      if      (!isSuccess)    rating = '失敗';
+      else if (isPerfect >= 3) rating = '🥇 金牌';
+      else if (isPerfect === 2) rating = '🥈 銀牌';
+      else if (isPerfect === 1) rating = '🥉 銅牌';
+      else                     rating = '完成';
+
+      const feMap    = { 0:'未選擇', 1:'乾粉滅火器', 2:'CO₂滅火器', 3:'泡沫滅火器', 4:'水霧滅火器' };
+      const sceneMap = { 0:'未知', 1:'場景 A', 2:'場景 B', 3:'場景 C', 4:'場景 D' };
+      const hideItems = d.hide_items;
+      const otherText = hideItems
+        ? (Array.isArray(hideItems) ? hideItems.join('、') : String(hideItems))
+        : '—';
+
+      results.push({
+        date:            rec.fake_time?.slice(0,10) || rec.created_at?.slice(0,10) || date,
+        player_id:       rec.player_id || '',
+        scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
+        count:           gameData.press_count ?? 0,
+        select_fe:       feMap[feId] ?? `滅火器${feId}`,
+        trial_in_20s:    d.check_start_time?.pass,
+        trial_outside:   d.check_first_distance?.pass,
+        trial_distance:  d.check_first_distance?.value ?? null,
+        fire_max_range:  d.check_second_distance?.pass,
+        fire_distance:   d.check_second_distance?.value ?? null,
+        no_oil_splash:   d.check_no_outfire?.pass,
+        no_intermittent: d.check_press_count?.pass,
+        is_success:      d.check_success?.pass ?? (isSuccess === 1),
+        kill_time:       d.kill_time || (parseFloat(gameData.kill_fire_time ?? 0).toFixed(2) + 's'),
+        sp_wrong:        d.special_error?.text || (isSpWrong ? '有' : '無'),
+        other_details:   otherText,
+        rating,
       });
-      const json = await res.json();
-
-      if (!json.success) {
-        showError(json.message || '查詢失敗，請稍後再試');
-        return;
-      }
-
-      lastData = json;
-      renderTable(json);
-      showPage('result');
-
-    } catch(e) {
-      showError('網路錯誤，無法連線至伺服器');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '查詢訓練紀錄';
     }
+
+    if (!results.length) { showError('分析後無有效資料'); return; }
+    log(`✔ 完成！共 ${results.length} 筆`, 'ok');
+    lastData = { serial_code: serial, date, records: results };
+
+    setTimeout(() => { renderTable(); showPage('result'); }, 400);
+
+  } catch(e) {
+    console.error(e);
+    showError('發生錯誤：' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '查詢訓練紀錄';
   }
+}
 
-  function showError(msg) {
-    const el = document.getElementById('error-msg');
-    el.textContent = msg;
-    el.classList.add('show');
-  }
+function renderTable() {
+  document.getElementById('meta-serial').textContent = lastData.serial_code;
+  document.getElementById('meta-date').textContent   = lastData.date;
+  document.getElementById('meta-count').textContent  = lastData.records.length;
+  const tbody = document.getElementById('result-body');
+  tbody.innerHTML = '';
+  lastData.records.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+      <td>${esc(r.date)}</td>
+      <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
+      <td>${esc(r.scene)}</td>
+      <td style="font-family:'Rajdhani',sans-serif">${r.count}</td>
+      <td>${esc(r.select_fe)}</td>
+      <td>${boolCell(r.trial_in_20s)}</td>
+      <td>${boolCell(r.trial_outside)}</td>
+      <td>${distCell(r.trial_distance)}</td>
+      <td>${boolCell(r.fire_max_range)}</td>
+      <td>${distCell(r.fire_distance)}</td>
+      <td>${boolCell(r.no_oil_splash)}</td>
+      <td>${boolCell(r.no_intermittent)}</td>
+      <td>${boolCell(r.is_success)}</td>
+      <td style="font-family:'Rajdhani',sans-serif">${esc(r.kill_time)}</td>
+      <td>${spCell(r.sp_wrong)}</td>
+      <td style="max-width:180px;white-space:normal;text-align:left;font-size:.78rem">${esc(r.other_details)}</td>
+      <td>${ratingCell(r.rating)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-  function showPage(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-  }
+function esc(v) {
+  if (v === null || v === undefined || v === '' || v === '—')
+    return '<span style="color:var(--muted)">—</span>';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function boolCell(v) {
+  if (v === true  || v === 1) return '<span class="badge badge-pass">✔ 是</span>';
+  if (v === false || v === 0) return '<span class="badge badge-fail">✘ 否</span>';
+  return `<span class="badge badge-neutral">${esc(v)}</span>`;
+}
+function distCell(v) {
+  if (v === null || v === undefined || v === '') return '<span style="color:var(--muted)">—</span>';
+  const n = parseFloat(v);
+  return isNaN(n) ? esc(v) : `<span style="font-family:'Rajdhani',sans-serif">${n.toFixed(2)} m</span>`;
+}
+function spCell(v) {
+  if (!v || v === '無' || v === '—') return '<span class="badge badge-neutral">無</span>';
+  return `<span class="badge badge-fail">${esc(v)}</span>`;
+}
+function ratingCell(v) {
+  if (!v) return '<span style="color:var(--muted)">—</span>';
+  if (v.includes('金'))  return `<span style="color:#fbbf24;font-weight:700">${v}</span>`;
+  if (v.includes('銀'))  return `<span style="color:#94a3b8;font-weight:700">${v}</span>`;
+  if (v.includes('銅'))  return `<span style="color:#cd7f32;font-weight:700">${v}</span>`;
+  if (v.includes('失敗')) return `<span class="badge badge-fail">${v}</span>`;
+  return `<span class="badge badge-pass">${v}</span>`;
+}
 
-  function goBack() {
-    showPage('search');
-    document.getElementById('error-msg').classList.remove('show');
-  }
-
-  function renderTable(data) {
-    document.getElementById('meta-serial').textContent = data.serial_code;
-    document.getElementById('meta-date').textContent   = data.date;
-    document.getElementById('meta-count').textContent  = data.total;
-
-    const tbody = document.getElementById('result-body');
-    tbody.innerHTML = '';
-
-    data.records.forEach((r, i) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${esc(r.date)}</td>
-        <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
-        <td>${esc(r.scene)}</td>
-        <td>${r.count}</td>
-        <td>${esc(r.select_fe)}</td>
-        <td>${boolCell(r.trial_in_20s)}</td>
-        <td>${boolCell(r.trial_outside)}</td>
-        <td>${distCell(r.trial_distance)}</td>
-        <td>${boolCell(r.fire_max_range)}</td>
-        <td>${distCell(r.fire_distance)}</td>
-        <td>${boolCell(r.no_oil_splash)}</td>
-        <td>${boolCell(r.no_intermittent)}</td>
-        <td>${successCell(r.is_success)}</td>
-        <td style="font-family:'Rajdhani',sans-serif">${esc(r.kill_time)}</td>
-        <td>${wrongCell(r.sp_wrong)}</td>
-        <td style="max-width:180px;white-space:normal;text-align:left;font-size:.78rem">${esc(r.other_details)}</td>
-        <td>${ratingCell(r.rating)}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function esc(v) {
-    if (v === null || v === undefined) return '<span style="color:var(--muted)">—</span>';
-    return String(v).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function boolCell(v) {
-    if (v === true  || v === 1 || v === '1' || v === 'true'  || v === '✔' || v === '是') 
-      return '<span class="badge badge-pass">✔ 是</span>';
-    if (v === false || v === 0 || v === '0' || v === 'false' || v === '✘' || v === '否') 
-      return '<span class="badge badge-fail">✘ 否</span>';
-    return `<span class="badge badge-neutral">${esc(v)}</span>`;
-  }
-
-  function distCell(v) {
-    if (!v || v === '-') return '<span style="color:var(--muted)">—</span>';
-    const num = parseFloat(v);
-    if (!isNaN(num)) return `<span style="color:var(--text)">${num.toFixed(2)} m</span>`;
-    return esc(v);
-  }
-
-  function successCell(v) {
-    if (String(v).includes('成功') || v === 1 || v === '1')
-      return '<span class="badge badge-pass">✔ 成功</span>';
-    return '<span class="badge badge-fail">✘ 失敗</span>';
-  }
-
-  function wrongCell(v) {
-    if (v === '有' || v === 1 || v === '1' || v === true)
-      return '<span class="badge badge-fail">有</span>';
-    return '<span class="badge badge-neutral">無</span>';
-  }
-
-  function ratingCell(v) {
-    if (!v || v === '-') return '<span style="color:var(--muted)">—</span>';
-    if (v.includes('金')) return `<span class="cell-gold">${v}</span>`;
-    if (v.includes('銀')) return `<span class="cell-silver">${v}</span>`;
-    if (v.includes('銅')) return `<span style="color:#cd7f32;font-weight:700">${v}</span>`;
-    if (v.includes('失敗')) return `<span class="cell-fail">${v}</span>`;
-    return `<span class="cell-pass">${v}</span>`;
-  }
-
-  // ── CSV Export ──────────────────────────────────────────────────────────────
-  function exportCSV() {
-    if (!lastData) return;
-    const headers = ['#','日期','學員代碼','場景','次數','選擇滅火器',
-      '20秒內試噴','有效射程外試噴','試噴距離','最大射程開始滅火','開始滅火距離',
-      '油不濺出(全程)','噴射無斷續','滅火成功','完成時間','特殊失誤','其他操作細項','綜合評定'];
-
-    const rows = lastData.records.map((r,i) => [
-      i+1, r.date, r.player_id, r.scene, r.count, r.select_fe,
-      r.trial_in_20s, r.trial_outside, r.trial_distance,
-      r.fire_max_range, r.fire_distance, r.no_oil_splash, r.no_intermittent,
-      r.is_success, r.kill_time, r.sp_wrong, r.other_details, r.rating
-    ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
-
-    const bom = '\uFEFF';
-    const csv = bom + [headers.join(','), ...rows].join('\r\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
-    a.download = `VR訓練_${lastData.serial_code}_${lastData.date}.csv`;
-    a.click();
-  }
+function exportCSV() {
+  if (!lastData) return;
+  const headers = ['#','日期','學員代碼','場景','次數','選擇滅火器',
+    '20秒內試噴','有效射程外試噴','試噴距離(m)','最大射程開始滅火','開始滅火距離(m)',
+    '油不濺出(全程)','噴射無斷續','滅火成功','完成時間','特殊失誤','其他操作細項','綜合評定'];
+  const rows = lastData.records.map((r,i) => [
+    i+1, r.date, r.player_id, r.scene, r.count, r.select_fe,
+    r.trial_in_20s, r.trial_outside, r.trial_distance,
+    r.fire_max_range, r.fire_distance, r.no_oil_splash, r.no_intermittent,
+    r.is_success, r.kill_time, r.sp_wrong, r.other_details, r.rating
+  ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `VR訓練_${lastData.serial_code}_${lastData.date}.csv`;
+  a.click();
+}
 </script>
 </body>
 </html>

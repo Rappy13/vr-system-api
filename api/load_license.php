@@ -1,12 +1,9 @@
 <?php
 // load_license.php - 讀取License資料
-
 require_once 'config.php';
-
 if ($_SERVER['REQUEST_METHOD'] !== 'GET' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendResponse(false, 'Method not allowed', null, 405);
 }
-
 try {
     $conn = getDBConnection();
     
@@ -15,11 +12,13 @@ try {
         $objectId = $_GET['objectId'] ?? null;
         $serial_code = $_GET['serial_code'] ?? null;
         $user_name = $_GET['user_name'] ?? null;
+        $email = $_GET['email'] ?? null;
     } else {
         $input = json_decode(file_get_contents('php://input'), true);
         $objectId = $input['objectId'] ?? null;
         $serial_code = $input['serial_code'] ?? null;
         $user_name = $input['user_name'] ?? null;
+        $email = $input['email'] ?? null;
     }
     
     // 根據不同條件查詢
@@ -31,7 +30,6 @@ try {
         $result = $stmt->fetch();
         
         if ($result) {
-            // 轉換布林值
             $result['active'] = (bool)$result['active'];
             $result['infinity'] = (bool)$result['infinity'];
             $result['count'] = (int)$result['count'];
@@ -71,6 +69,25 @@ try {
             $result['count'] = (int)$result['count'];
         }
         
+        sendResponse(true, 'Found ' . count($results) . ' licenses', $results);
+
+    } elseif ($email) {
+        // 根據email查詢（可能多筆）
+        $sql = "SELECT * FROM License WHERE email = :email";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':email' => $email]);
+        $results = $stmt->fetchAll();
+
+        if (empty($results)) {
+            sendResponse(false, 'License not found', null, 404);
+        }
+
+        foreach ($results as &$result) {
+            $result['active'] = (bool)$result['active'];
+            $result['infinity'] = (bool)$result['infinity'];
+            $result['count'] = (int)$result['count'];
+        }
+
         sendResponse(true, 'Found ' . count($results) . ' licenses', $results);
         
     } else {

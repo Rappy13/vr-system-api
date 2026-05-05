@@ -175,9 +175,9 @@
       <div class="logo-sub">訓練紀錄查詢系統</div>
     </div>
     <div class="field-group">
-      <label class="field-label" for="input-serial">序號 / Serial Code</label>
+      <label class="field-label" for="input-serial">Email</label>
       <input id="input-serial" class="field-input" type="text"
-             placeholder="" autocomplete="off" spellcheck="false">
+             placeholder="Email" autocomplete="off" spellcheck="false">
     </div>
     <div class="field-group">
       <label class="field-label" for="input-date">訓練日期</label>
@@ -282,26 +282,30 @@ async function doQuery() {
   document.getElementById('error-msg').classList.remove('show');
   clearLog();
 
-  if (!serial) { showError('請輸入學員代碼'); return; }
+  if (!serial) { showError('請輸入學員代碼或 Email'); return; }
   if (!date)   { showError('請選擇日期');     return; }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>查詢中…';
 
   try {
-    // Step 1: License → objectId
+    // Step 1: License → objectId (支援序號或 Email)
     log('🔍 查詢學員資料…', 'spin');
-    const licRes  = await fetch(`${BASE}/api/load_license.php?serial_code=${encodeURIComponent(serial)}`);
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(serial);
+    const licUrl  = isEmail
+      ? `${BASE}/api/load_license.php?email=${encodeURIComponent(serial)}`
+      : `${BASE}/api/load_license.php?serial_code=${encodeURIComponent(serial)}`;
+    const licRes  = await fetch(licUrl);
     const licJson = await licRes.json();
 
     if (!licJson.success || !licJson.data) {
-      showError('找不到該學員代碼，請確認後重試');
+      showError(isEmail ? '找不到該 Email，請確認後重試' : '找不到該學員代碼，請確認後重試');
       return;
     }
     const licData  = Array.isArray(licJson.data) ? licJson.data[0] : licJson.data;
     const objectId = licData.objectId;
-    if (!objectId) { showError('無法取得學員 ObjectId'); return; }
-    log(`✔ 找到學員，ObjectId: ${objectId}`, 'ok');
+    if (!objectId) { showError('無法取得學員資料'); return; }
+    log(`✔ 找到學員`, 'ok');
 
     // Step 2: VR Records
     log('📋 載入訓練紀錄…', 'spin');

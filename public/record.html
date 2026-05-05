@@ -511,7 +511,7 @@ function exportCSV() {
     i+1, r.date, r.player_id, r.scene, (r.sub_index != null ? r.sub_index : 1) + '次', r.select_fe,
     boolStr(r.trial_in_20s), boolStr(r.trial_outside), r.trial_distance,
     boolStr(r.fire_max_range), r.fire_distance, boolStr(r.no_oil_splash), boolStr(r.no_intermittent),
-    boolStr(r.is_success), r.kill_time, r.sp_wrong, r.other_details, r.rating
+    boolStr(r.is_success), r.kill_time, r.sp_wrong, r.other_details, r.rating.replace(/🥇\s*/,'').replace(/🥈\s*/,'').replace(/🥉\s*/,'')
   ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
   const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   const a = document.createElement('a');

@@ -429,7 +429,8 @@ const sceneId   = parseInt(rec.scene ?? 0);
 
     if (!results.length) { showError('分析後無有效資料'); return; }
     log(`✔ 完成！共 ${results.length} 筆`, 'ok');
-    lastData = { serial_code: serial, date, records: results };
+    const displayName = licData.user_name?.trim() || licData.email?.trim() || serial;
+    lastData = { serial_code: serial, display_name: displayName, date, records: results };
 
     setTimeout(() => { renderTable(); showPage('result'); }, 400);
 
@@ -443,7 +444,7 @@ const sceneId   = parseInt(rec.scene ?? 0);
 }
 
 function renderTable() {
-  document.getElementById('meta-serial').textContent = lastData.serial_code;
+  document.getElementById('meta-serial').textContent = lastData.display_name;
   document.getElementById('meta-date').textContent   = lastData.date;
   document.getElementById('meta-count').textContent  = lastData.records.length;
   const tbody = document.getElementById('result-body');
@@ -523,7 +524,7 @@ function exportCSV() {
   const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `VR訓練_${lastData.serial_code}_${lastData.date}.csv`;
+  a.download = `VR訓練_${lastData.display_name}_${lastData.date}.csv`;
   a.click();
 }
 

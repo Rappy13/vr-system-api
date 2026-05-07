@@ -324,9 +324,18 @@ async function saveLicense() {
   if (!infinity && (!countVal || parseInt(countVal) < 1)) { showErr(errEl,'請填寫使用次數上限（至少 1）'); return; }
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>儲存中…';
   try {
-    const payload = { user_name, email, infinity, active: true };
+    // Build payload carefully — only include fields with real values
+    // to avoid SQLSTATE integer/empty-string errors on the DB side
+    const payload = {
+      user_name,
+      infinity: infinity ? 1 : 0,   // send as int, not bool
+      active: 1,
+    };
+    if (email) payload.email = email;
+    // Only send count when not infinity; send as integer
     if (!infinity) payload.count = parseInt(countVal);
     if (objectId) payload.objectId = objectId;
+
     const url = objectId ? `${BASE}/api/update_license.php` : `${BASE}/api/save_license.php`;
     const res = await apiPost(url, payload);
     if (res.success) {
@@ -340,7 +349,8 @@ async function saveLicense() {
 async function toggleLicense(objectId, active) {
   showLoading(active?'啟用中…':'停用中…');
   try {
-    const res = await apiPost(`${BASE}/api/update_license.php`, {objectId, active});
+    // Only send objectId + active — no other fields to avoid DB type errors
+    const res = await apiPost(`${BASE}/api/update_license.php`, { objectId, active });
     if (res.success) { toast(active?'✔ 已啟用授權':'✔ 已停用授權','ok'); await loadLicenses(); }
     else { toast('操作失敗：'+(res.message||''),'err'); hideLoading(); }
   } catch(e) { toast('連線失敗','err'); hideLoading(); }

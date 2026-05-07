@@ -44,7 +44,18 @@ try {
 
         // serial_code 若前端沒給，自動產生
         if (empty($serial_code)) {
-            $serial_code = strtoupper(bin2hex(random_bytes(8)));
+ 
+function generateSerialCode($length = 8) {
+    // 去掉難辨識的字符：0, o, O, l, 1, I, i
+    $chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    $code = '';
+    while (strlen($code) < $length) {
+        $code .= $chars[random_int(0, strlen($chars) - 1)];
+    }
+    return $code;
+}
+
+$serial_code = generateSerialCode();
         }
 
         $sql = "INSERT INTO License

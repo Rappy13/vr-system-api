@@ -1,5 +1,5 @@
 <?php
-// save_vr_record.php - 儲存VR_Player_Record資料
+// save_license.php - 新增/更新 License
 
 require_once 'config.php';
 
@@ -9,94 +9,112 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!$input) {
         sendResponse(false, 'Invalid JSON data', null, 400);
     }
-    
+
     $conn = getDBConnection();
-    
-    // 如果沒有提供objectId，生成新的
+
+    // 準備欄位資料
+    $active       = isset($input['active'])      ? (int)$input['active']    : 1;
+    $count        = isset($input['count'])       ? (int)$input['count']     : 0;
+    $email        = $input['email']      ?? null;
+    $tel          = $input['tel']        ?? null;
+    $infinity     = isset($input['infinity'])    ? (int)$input['infinity']  : 0;
+    $parent       = $input['parent']     ?? null;
+    $serial_code  = $input['serial_code'] ?? null;
+    $user_name    = $input['user_name']  ?? null;
+    $stage_status = isset($input['stage_status'])
+                        ? (is_array($input['stage_status'])
+                            ? json_encode($input['stage_status'])
+                            : $input['stage_status'])
+                        : null;
+    $expiry_date  = null;
+    if (!empty($input['expiry_date'])) {
+        $expiry_date = (new DateTime($input['expiry_date']))->format('Y-m-d H:i:s');
+    }
+
+    // ── 新增 ──────────────────────────────────────────────
     if (empty($input['objectId'])) {
+
         do {
             $objectId = generateObjectId();
-        } while (!isObjectIdUnique($conn, 'VR_Player_Record', $objectId));
-        $input['objectId'] = $objectId;
-        $isNew = true;
-    } else {
-        $objectId = $input['objectId'];
-        $isNew = false;
-    }
-    
-    // 準備資料
-    $age = isset($input['age']) ? (int)$input['age'] : null;
-    $fake_time = $input['fake_time'] ?? null;
-    $player_id = $input['player_id'] ?? null;
-    $press_data = $input['press_data'] ?? null;
-    $scene = isset($input['scene']) ? (int)$input['scene'] : null;
-    $sexual = isset($input['sexual']) ? (int)$input['sexual'] : null;
-    $user = $input['user'] ?? null;
-    
-    // 如果fake_time是字串，轉換為MySQL DATETIME格式
-    if ($fake_time && !empty($fake_time)) {
-        $date = new DateTime($fake_time);
-        $fake_time = $date->format('Y-m-d H:i:s');
-    }
-    
-    if ($isNew) {
-        // 新增記錄
-        $sql = "INSERT INTO VR_Player_Record 
-                (objectId, age, fake_time, player_id, press_data, scene, sexual, user) 
-                VALUES 
-                (:objectId, :age, :fake_time, :player_id, :press_data, :scene, :sexual, :user)";
-        
+        } while (!isObjectIdUnique($conn, 'License', $objectId));
+
+        // serial_code 若前端沒給，自動產生
+        if (empty($serial_code)) {
+            $serial_code = strtoupper(bin2hex(random_bytes(8)));
+        }
+
+        $sql = "INSERT INTO License
+                    (objectId, active, count, email, tel, infinity,
+                     parent, serial_code, user_name, stage_status, expiry_date)
+                VALUES
+                    (:objectId, :active, :count, :email, :tel, :infinity,
+                     :parent, :serial_code, :user_name, :stage_status, :expiry_date)";
+
         $stmt = $conn->prepare($sql);
         $stmt->execute([
-            ':objectId' => $objectId,
-            ':age' => $age,
-            ':fake_time' => $fake_time,
-            ':player_id' => $player_id,
-            ':press_data' => $press_data,
-            ':scene' => $scene,
-            ':sexual' => $sexual,
-            ':user' => $user
+            ':objectId'     => $objectId,
+            ':active'       => $active,
+            ':count'        => $count,
+            ':email'        => $email,
+            ':tel'          => $tel,
+            ':infinity'     => $infinity,
+            ':parent'       => $parent,
+            ':serial_code'  => $serial_code,
+            ':user_name'    => $user_name,
+            ':stage_status' => $stage_status,
+            ':expiry_date'  => $expiry_date,
         ]);
-        
-        sendResponse(true, 'VR Player Record created successfully', ['objectId' => $objectId], 201);
+
+        sendResponse(true, 'License created successfully', [
+            'objectId'    => $objectId,
+            'serial_code' => $serial_code,
+        ], 201);
+
+    // ── 更新 ──────────────────────────────────────────────
     } else {
-        // 更新記錄
-        $sql = "UPDATE VR_Player_Record SET 
-                age = :age,
-                fake_time = :fake_time,
-                player_id = :player_id,
-                press_data = :press_data,
-                scene = :scene,
-                sexual = :sexual,
-                user = :user
-                WHERE objectId = :objectId";
-        
+
+        $sql = "UPDATE License SET
+                    active       = :active,
+                    count        = :count,
+                    email        = :email,
+                    tel          = :tel,
+                    infinity     = :infinity,
+                    parent       = :parent,
+                    serial_code  = :serial_code,
+                    user_name    = :user_name,
+                    stage_status = :stage_status,
+                    expiry_date  = :expiry_date
+                WHERE objectId   = :objectId";
+
         $stmt = $conn->prepare($sql);
-        $result = $stmt->execute([
-            ':objectId' => $objectId,
-            ':age' => $age,
-            ':fake_time' => $fake_time,
-            ':player_id' => $player_id,
-            ':press_data' => $press_data,
-            ':scene' => $scene,
-            ':sexual' => $sexual,
-            ':user' => $user
+        $stmt->execute([
+            ':objectId'     => $input['objectId'],
+            ':active'       => $active,
+            ':count'        => $count,
+            ':email'        => $email,
+            ':tel'          => $tel,
+            ':infinity'     => $infinity,
+            ':parent'       => $parent,
+            ':serial_code'  => $serial_code,
+            ':user_name'    => $user_name,
+            ':stage_status' => $stage_status,
+            ':expiry_date'  => $expiry_date,
         ]);
-        
+
         if ($stmt->rowCount() > 0) {
-            sendResponse(true, 'VR Player Record updated successfully', ['objectId' => $objectId]);
+            sendResponse(true, 'License updated successfully', ['objectId' => $input['objectId']]);
         } else {
-            sendResponse(false, 'VR Player Record not found or no changes made', null, 404);
+            sendResponse(false, 'License not found or no changes made', null, 404);
         }
     }
-    
-} catch(PDOException $e) {
+
+} catch (PDOException $e) {
     sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
-} catch(Exception $e) {
+} catch (Exception $e) {
     sendResponse(false, 'Error: ' . $e->getMessage(), null, 500);
 }
 ?>

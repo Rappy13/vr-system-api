@@ -151,10 +151,10 @@ td{padding:.7rem 1rem;vertical-align:middle}
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>授權碼</th><th>學員姓名</th><th>Email</th>
-          <th>永久授權</th><th>狀態</th><th>建立日期</th><th>操作</th>
+          <th>授權碼</th><th>單位名稱</th><th>Email</th>
+          <th>無限次數</th><th>剩餘次數</th><th>狀態</th><th>建立日期</th><th>操作</th>
         </tr></thead>
-        <tbody id="license-tbody"><tr class="empty-row"><td colspan="7">載入中…</td></tr></tbody>
+        <tbody id="license-tbody"><tr class="empty-row"><td colspan="8">載入中…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -170,13 +170,17 @@ td{padding:.7rem 1rem;vertical-align:middle}
     <div class="modal-body">
       <div class="modal-err" id="modal-error"></div>
       <input type="hidden" id="edit-objectId">
-      <div class="field"><label>學員姓名 *</label><input id="f-username" class="fi" type="text" placeholder="例如：王小明"></div>
+      <div class="field"><label>單位名稱 *</label><input id="f-username" class="fi" type="text" placeholder="例如：台北消防局"></div>
       <div class="field"><label>Email</label><input id="f-email" class="fi" type="email" placeholder="example@email.com"></div>
       <div class="field">
         <div class="toggle-wrap">
-          <label>永久授權（infinity）</label>
-          <label class="toggle"><input type="checkbox" id="f-infinity" checked><span class="toggle-slider"></span></label>
+          <label>無限次數（infinity）</label>
+          <label class="toggle"><input type="checkbox" id="f-infinity" checked onchange="toggleCountField()"><span class="toggle-slider"></span></label>
         </div>
+      </div>
+      <div class="field" id="count-field" style="display:none">
+        <label>使用次數上限</label>
+        <input id="f-count" class="fi" type="number" min="1" placeholder="例如：100">
       </div>
     </div>
     <div class="modal-footer">
@@ -254,16 +258,21 @@ function updateStats(list) {
 function renderTable(list) {
   const tbody = document.getElementById('license-tbody');
   tbody.innerHTML = '';
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="7">查無資料</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">查無資料</td></tr>'; return; }
   list.forEach(lic => {
     const isActive = lic.active===true||lic.active===1;
     const isInf    = lic.infinity===true||lic.infinity===1;
+    const count    = lic.count != null ? lic.count : '—';
+    const countCell = isInf
+      ? '<span style="color:var(--muted)">∞</span>'
+      : `<span style="font-family:monospace;font-weight:600;color:${count===0?'var(--danger)':'var(--text)'}">${count}</span>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="font-family:monospace;font-size:.82rem;color:var(--muted)">${esc(lic.serial_code||'—')}</td>
       <td style="font-weight:500">${esc(lic.user_name||'—')}</td>
       <td style="color:var(--muted)">${esc(lic.email||'—')}</td>
-      <td>${isInf?'<span class="badge badge-inf">永久</span>':'<span class="badge badge-off">限期</span>'}</td>
+      <td>${isInf?'<span class="badge badge-inf">∞ 無限</span>':'<span class="badge badge-off">限制</span>'}</td>
+      <td>${countCell}</td>
       <td>${isActive?'<span class="badge badge-active">✔ 啟用</span>':'<span class="badge badge-off">✘ 停用</span>'}</td>
       <td style="color:var(--muted);font-size:.82rem">${(lic.created_at||'').slice(0,10)}</td>
       <td>
@@ -281,13 +290,21 @@ function filterTable() {
   ));
 }
 
+function toggleCountField() {
+  const isInf = document.getElementById('f-infinity').checked;
+  document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
+}
+
 function openModal(lic=null) {
   document.getElementById('modal-error').classList.remove('show');
   document.getElementById('modal-title').textContent = lic?'編輯 License':'新增 License';
   document.getElementById('edit-objectId').value = lic?.objectId||'';
   document.getElementById('f-username').value    = lic?.user_name||'';
   document.getElementById('f-email').value       = lic?.email||'';
-  document.getElementById('f-infinity').checked  = lic?(lic.infinity===true||lic.infinity===1):true;
+  const isInf = lic ? (lic.infinity===true||lic.infinity===1) : true;
+  document.getElementById('f-infinity').checked  = isInf;
+  document.getElementById('f-count').value       = (!isInf && lic?.count != null) ? lic.count : '';
+  document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
   document.getElementById('modal-overlay').classList.add('show');
   setTimeout(()=>document.getElementById('f-username').focus(),100);
 }
@@ -299,13 +316,16 @@ async function saveLicense() {
   const user_name = document.getElementById('f-username').value.trim();
   const email     = document.getElementById('f-email').value.trim();
   const infinity  = document.getElementById('f-infinity').checked;
+  const countVal  = document.getElementById('f-count').value;
   const errEl     = document.getElementById('modal-error');
   const btn       = document.getElementById('btn-save');
   errEl.classList.remove('show');
-  if (!user_name) { showErr(errEl,'請填寫學員姓名'); return; }
+  if (!user_name) { showErr(errEl,'請填寫單位名稱'); return; }
+  if (!infinity && (!countVal || parseInt(countVal) < 1)) { showErr(errEl,'請填寫使用次數上限（至少 1）'); return; }
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>儲存中…';
   try {
-    const payload = {user_name, email, infinity, active:true};
+    const payload = { user_name, email, infinity, active: true };
+    if (!infinity) payload.count = parseInt(countVal);
     if (objectId) payload.objectId = objectId;
     const url = objectId ? `${BASE}/api/update_license.php` : `${BASE}/api/save_license.php`;
     const res = await apiPost(url, payload);

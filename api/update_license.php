@@ -61,13 +61,15 @@ try {
         if (array_key_exists($inputKey, $input)) {
             $updateFields[] = "{$dbColumn} = :{$inputKey}";
             
-            // 特殊處理布林值
+            // 特殊處理布林值 — MySQL TINYINT 需要 1/0，不接受 PHP bool 或空字串
             if ($inputKey === 'active' || $inputKey === 'infinity') {
-                $updateParams[":{$inputKey}"] = (bool)$input[$inputKey];
+                $val = $input[$inputKey];
+                $updateParams[":{$inputKey}"] = ($val === true || $val === 1 || $val === '1' || $val === 'true') ? 1 : 0;
             } elseif ($inputKey === 'count') {
-                $updateParams[":{$inputKey}"] = (int)$input[$inputKey];
+                $val = $input[$inputKey];
+                $updateParams[":{$inputKey}"] = ($val === null || $val === '') ? 0 : (int)$val;
             } else {
-                $updateParams[":{$inputKey}"] = $input[$inputKey];
+                $updateParams[":{$inputKey}"] = $input[$inputKey] ?? '';
             }
         }
     }

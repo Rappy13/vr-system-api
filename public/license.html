@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>License 管理系統</title>
+<title>FireAway XR License 管理系統</title>
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -117,9 +118,9 @@ td{padding:.7rem 1rem;vertical-align:middle}
 <div id="page-login" class="page active">
   <div class="login-wrap">
     <div class="login-brand">
-      <div class="brand-badge">🔥 VR Fire System</div>
+      <div class="brand-badge">FireAway XR</div>
       <div class="brand-title">License<br><em>管理</em><br>後台</div>
-      <div class="brand-sub">管理所有學員授權碼、啟用／停用狀態，以及永久授權設定。</div>
+      <div class="brand-sub">管理所有單位授權碼、啟用／停用狀態，以及其他設定。</div>
     </div>
     <div class="login-form-wrap">
       <div class="form-title">管理員登入</div>
@@ -135,7 +136,7 @@ td{padding:.7rem 1rem;vertical-align:middle}
 <!-- PAGE 2 DASHBOARD -->
 <div id="page-dash" class="page">
   <div class="topbar">
-    <div class="topbar-brand">🔥 VR Fire <span>Admin</span></div>
+    <div class="topbar-brand">FireAway XR <span>管理系統</span></div>
     <div class="topbar-user">歡迎，<strong id="topbar-username">—</strong><button class="btn-logout" onclick="doLogout()">登出</button></div>
   </div>
   <div class="dash-body">
@@ -145,7 +146,7 @@ td{padding:.7rem 1rem;vertical-align:middle}
       <div class="stat-card"><div class="stat-num red" id="stat-inactive">—</div><div class="stat-label">已停用</div></div>
     </div>
     <div class="toolbar">
-      <input class="search-input" id="search-input" type="text" placeholder="🔍  搜尋姓名 / 授權碼 / Email…" oninput="filterTable()">
+      <input class="search-input" id="search-input" type="text" placeholder="🔍  搜尋名稱 / 授權碼 / Email…" oninput="filterTable()">
       <button class="btn-add" onclick="openModal()">＋ 新增 License</button>
     </div>
     <div class="table-wrap">

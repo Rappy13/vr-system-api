@@ -40,8 +40,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .topbar-brand span{background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;letter-spacing:1.5px;padding:.25rem .55rem;border-radius:3px;text-transform:uppercase}
 .topbar-user{margin-left:auto;display:flex;align-items:center;gap:.75rem;font-size:.82rem;color:var(--muted)}
 .topbar-user strong{color:var(--text)}
-.btn-logout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.3rem .8rem;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:border-color .2s,color .2s}
-.btn-logout:hover{border-color:var(--danger);color:var(--danger)}
+.btn-topbar{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.3rem .8rem;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:border-color .2s,color .2s}
+.btn-topbar:hover{border-color:var(--accent);color:var(--accent)}
+.btn-topbar.logout:hover{border-color:var(--danger);color:var(--danger)}
 .dash-body{flex:1;padding:2rem;overflow:auto}
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.5rem;box-shadow:var(--shadow)}
@@ -98,9 +99,12 @@ td{padding:.7rem 1rem;vertical-align:middle}
 .toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
 .modal-err{background:rgba(200,75,49,.08);border:1px solid rgba(200,75,49,.2);color:var(--danger);border-radius:6px;padding:.55rem .9rem;font-size:.8rem;margin-bottom:.8rem;display:none}
 .modal-err.show{display:block}
+.modal-ok{background:rgba(45,90,61,.08);border:1px solid rgba(45,90,61,.2);color:var(--accent2);border-radius:6px;padding:.55rem .9rem;font-size:.8rem;margin-bottom:.8rem;display:none}
+.modal-ok.show{display:block}
 .toast{position:fixed;bottom:2rem;right:2rem;background:var(--text);color:#fff;padding:.8rem 1.4rem;border-radius:8px;font-size:.85rem;font-weight:500;box-shadow:var(--shadow-lg);transform:translateY(80px);opacity:0;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s;z-index:200}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.ok{background:var(--accent2)}.toast.err{background:var(--accent)}
+.divider{border:none;border-top:1px solid var(--border);margin:.5rem 0}
 @media(max-width:640px){.login-wrap{grid-template-columns:1fr}.login-brand{display:none}.stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -137,7 +141,11 @@ td{padding:.7rem 1rem;vertical-align:middle}
 <div id="page-dash" class="page">
   <div class="topbar">
     <div class="topbar-brand">FireAway XR <span>管理系統</span></div>
-    <div class="topbar-user">歡迎，<strong id="topbar-username">—</strong><button class="btn-logout" onclick="doLogout()">登出</button></div>
+    <div class="topbar-user">
+      歡迎，<strong id="topbar-username">—</strong>
+      <button class="btn-topbar" onclick="openPwdModal()">⚙ 帳號設定</button>
+      <button class="btn-topbar logout" onclick="doLogout()">登出</button>
+    </div>
   </div>
   <div class="dash-body">
     <div class="stats-row">
@@ -161,7 +169,7 @@ td{padding:.7rem 1rem;vertical-align:middle}
   </div>
 </div>
 
-<!-- MODAL -->
+<!-- MODAL: 新增/編輯 License -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-header">
@@ -191,13 +199,37 @@ td{padding:.7rem 1rem;vertical-align:middle}
   </div>
 </div>
 
+<!-- MODAL: 帳號設定 -->
+<div class="modal-overlay" id="pwd-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚙ 帳號設定</div>
+      <button class="modal-close" onclick="closePwdModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="pwd-error"></div>
+      <div class="modal-ok"  id="pwd-ok"></div>
+      <div class="field"><label>目前帳號</label><input id="pwd-username" class="fi" type="text" placeholder="新帳號（不改請留空）" autocomplete="off"></div>
+      <hr class="divider">
+      <div class="field"><label>舊密碼 *</label><input id="pwd-old" class="fi" type="password" placeholder="請輸入目前密碼" autocomplete="current-password"></div>
+      <div class="field"><label>新密碼</label><input id="pwd-new" class="fi" type="password" placeholder="不改密碼請留空" autocomplete="new-password"></div>
+      <div class="field"><label>確認新密碼</label><input id="pwd-confirm" class="fi" type="password" placeholder="再輸入一次新密碼" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePwdModal()">取消</button>
+      <button class="btn-save" id="btn-pwd-save" onclick="saveAccount()">儲存變更</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const BASE = 'https://vr-system-api.onrender.com';
 let allLicenses = [], currentUser = '';
 
+// ── Init: use localStorage so refresh keeps login ─────────────────────────────
 window.addEventListener('load', () => {
-  const token = sessionStorage.getItem('vr_token');
-  currentUser = sessionStorage.getItem('vr_user') || '';
+  const token = localStorage.getItem('vr_token');
+  currentUser = localStorage.getItem('vr_user') || '';
   if (token) {
     document.getElementById('topbar-username').textContent = currentUser;
     showPage('dash'); loadLicenses();
@@ -207,15 +239,19 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('page-login').classList.contains('active')) doLogin();
 });
 
-function showPage(n) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById('page-'+n).classList.add('active'); }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showPage(n) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-'+n).classList.add('active'); }
 function showLoading(t='載入中…') { document.getElementById('loading-text').textContent=t; document.getElementById('loading').classList.add('show'); }
 function hideLoading() { document.getElementById('loading').classList.remove('show'); }
-function toast(msg, type='') { const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); setTimeout(()=>el.classList.remove('show'),2800); }
-function showErr(el, msg) { el.textContent='⚠ '+msg; el.classList.add('show'); }
+function toast(msg,type='') { const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); setTimeout(()=>el.classList.remove('show'),2800); }
+function showErr(el,msg) { el.textContent='⚠ '+msg; el.classList.add('show'); }
+function showOk(el,msg)  { el.textContent='✔ '+msg; el.classList.add('show'); }
+function hideMsg(el)     { el.classList.remove('show'); }
 function esc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 async function apiGet(url) { const r=await fetch(url); return r.json(); }
-async function apiPost(url, body) { const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json(); }
+async function apiPost(url,body) { const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json(); }
 
+// ── Login / Logout ────────────────────────────────────────────────────────────
 async function doLogin() {
   const username=document.getElementById('inp-user').value.trim();
   const password=document.getElementById('inp-pass').value;
@@ -225,10 +261,10 @@ async function doLogin() {
   if (!username||!password) { showErr(errEl,'請填寫帳號與密碼'); return; }
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>登入中…';
   try {
-    const res = await apiPost(`${BASE}/api/login.php`, {username, password});
+    const res = await apiPost(`${BASE}/api/login.php`,{username,password});
     if (res.success) {
-      sessionStorage.setItem('vr_token', res.token);
-      sessionStorage.setItem('vr_user',  res.username);
+      localStorage.setItem('vr_token', res.token);
+      localStorage.setItem('vr_user',  res.username);
       currentUser = res.username;
       document.getElementById('topbar-username').textContent = currentUser;
       showPage('dash'); loadLicenses();
@@ -237,8 +273,16 @@ async function doLogin() {
   finally { btn.disabled=false; btn.innerHTML='登入'; }
 }
 
-function doLogout() { sessionStorage.removeItem('vr_token'); sessionStorage.removeItem('vr_user'); showPage('login'); }
+function doLogout() {
+  localStorage.removeItem('vr_token');
+  localStorage.removeItem('vr_user');
+  currentUser = '';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  showPage('login');
+}
 
+// ── License list ──────────────────────────────────────────────────────────────
 async function loadLicenses() {
   showLoading('載入授權列表…');
   try {
@@ -291,6 +335,7 @@ function filterTable() {
   ));
 }
 
+// ── License modal ─────────────────────────────────────────────────────────────
 function toggleCountField() {
   const isInf = document.getElementById('f-infinity').checked;
   document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
@@ -325,18 +370,10 @@ async function saveLicense() {
   if (!infinity && (!countVal || parseInt(countVal) < 1)) { showErr(errEl,'請填寫使用次數上限（至少 1）'); return; }
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>儲存中…';
   try {
-    // Build payload carefully — only include fields with real values
-    // to avoid SQLSTATE integer/empty-string errors on the DB side
-    const payload = {
-      user_name,
-      infinity: infinity ? 1 : 0,   // send as int, not bool
-      active: 1,
-    };
+    const payload = { user_name, infinity: infinity?1:0, active: 1 };
     if (email) payload.email = email;
-    // Only send count when not infinity; send as integer
     if (!infinity) payload.count = parseInt(countVal);
     if (objectId) payload.objectId = objectId;
-
     const url = objectId ? `${BASE}/api/update_license.php` : `${BASE}/api/save_license.php`;
     const res = await apiPost(url, payload);
     if (res.success) {
@@ -350,11 +387,61 @@ async function saveLicense() {
 async function toggleLicense(objectId, active) {
   showLoading(active?'啟用中…':'停用中…');
   try {
-    // Only send objectId + active — no other fields to avoid DB type errors
-    const res = await apiPost(`${BASE}/api/update_license.php`, { objectId, active });
+    const res = await apiPost(`${BASE}/api/update_license.php`, { objectId, active: active?1:0 });
     if (res.success) { toast(active?'✔ 已啟用授權':'✔ 已停用授權','ok'); await loadLicenses(); }
     else { toast('操作失敗：'+(res.message||''),'err'); hideLoading(); }
   } catch(e) { toast('連線失敗','err'); hideLoading(); }
+}
+
+// ── Account settings modal ────────────────────────────────────────────────────
+function openPwdModal() {
+  document.getElementById('pwd-error').classList.remove('show');
+  document.getElementById('pwd-ok').classList.remove('show');
+  document.getElementById('pwd-username').value = currentUser;
+  document.getElementById('pwd-old').value      = '';
+  document.getElementById('pwd-new').value      = '';
+  document.getElementById('pwd-confirm').value  = '';
+  document.getElementById('pwd-modal-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('pwd-old').focus(),100);
+}
+function closePwdModal() { document.getElementById('pwd-modal-overlay').classList.remove('show'); }
+document.getElementById('pwd-modal-overlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closePwdModal(); });
+
+async function saveAccount() {
+  const newUsername = document.getElementById('pwd-username').value.trim();
+  const oldPwd      = document.getElementById('pwd-old').value;
+  const newPwd      = document.getElementById('pwd-new').value;
+  const confirmPwd  = document.getElementById('pwd-confirm').value;
+  const errEl       = document.getElementById('pwd-error');
+  const okEl        = document.getElementById('pwd-ok');
+  const btn         = document.getElementById('btn-pwd-save');
+  hideMsg(errEl); hideMsg(okEl);
+
+  if (!oldPwd) { showErr(errEl,'請輸入目前密碼'); return; }
+  if (newPwd && newPwd !== confirmPwd) { showErr(errEl,'新密碼與確認密碼不符'); return; }
+  if (newPwd && newPwd.length < 6) { showErr(errEl,'新密碼至少需要 6 個字元'); return; }
+
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>儲存中…';
+  try {
+    const payload = { username: currentUser, old_password: oldPwd };
+    if (newUsername && newUsername !== currentUser) payload.new_username = newUsername;
+    if (newPwd) payload.new_password = newPwd;
+
+    const res = await apiPost(`${BASE}/api/update_user.php`, payload);
+    if (res.success) {
+      // Update stored username if changed
+      if (newUsername && newUsername !== currentUser) {
+        currentUser = newUsername;
+        localStorage.setItem('vr_user', currentUser);
+        document.getElementById('topbar-username').textContent = currentUser;
+      }
+      showOk(okEl, '帳號資料已更新');
+      document.getElementById('pwd-old').value     = '';
+      document.getElementById('pwd-new').value     = '';
+      document.getElementById('pwd-confirm').value = '';
+    } else { showErr(errEl, res.message||'更新失敗'); }
+  } catch(e) { showErr(errEl,'連線失敗'); }
+  finally { btn.disabled=false; btn.innerHTML='儲存變更'; }
 }
 </script>
 </body>

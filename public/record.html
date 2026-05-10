@@ -374,12 +374,15 @@ async function doQuery() {
 
       log(`📋 處理第 ${i + 1} / ${filtered.length} 筆紀錄（共 ${dataItems.length} 次操作）…`, 'spin');
 
-      for (let j = 0; j < dataItems.length; j++) {
-        const gameData  = dataItems[j];
+      // 每筆 record 內的操作次數倒序排列（最後一次在最上面）
+      const reversedItems = [...dataItems].reverse();
+
+      for (let j = 0; j < reversedItems.length; j++) {
+        const gameData  = reversedItems[j];
         const feId      = parseInt(gameData.FE_id ?? 0);
         const timeLimit = parseFloat(gameData.FE_limit ?? 60);
 
-        log(`⚙ 分析第 ${i + 1} 筆 / 操作 ${j + 1} / ${dataItems.length}…`, 'spin');
+        log(`⚙ 分析第 ${i + 1} 筆 / 操作 ${dataItems.length - j} / ${dataItems.length}…`, 'spin');
 
         let d = {};
         try {
@@ -414,7 +417,7 @@ async function doQuery() {
           date:            getDisplayTime(gameData, rec),
           player_id:       rec.player_id || '',
           scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
-          sub_index:       dataItems.length > 1 ? j + 1 : null,
+          sub_index:       dataItems.length > 1 ? (dataItems.length - j) : null,
           count:           gameData.press_count ?? 0,
           select_fe:       feMap[feId] ?? `滅火器${feId}`,
           trial_in_20s:    d.check_start_time?.pass,

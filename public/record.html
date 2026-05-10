@@ -37,7 +37,6 @@
   .page { display: none; position: relative; z-index: 1; min-height: 100vh; }
   .page.active { display: flex; }
 
-  /* ── PAGE 1 ── */
   #page-search { align-items: center; justify-content: center; padding: 2rem; }
   .search-card {
     background: var(--panel); border: 1px solid var(--border);
@@ -113,7 +112,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── PAGE 2 ── */
   #page-result { flex-direction: column; }
   .result-header {
     background: var(--panel); border-bottom: 1px solid var(--border);
@@ -212,7 +210,7 @@
         </tr>
         <tr>
           <th>#</th>
-          <th class="accent">日期</th>
+          <th class="accent">時間</th>
           <th class="accent">學員代碼</th>
           <th>場景</th>
           <th>操作次數</th>
@@ -274,6 +272,14 @@ function goBack() {
   clearLog();
 }
 
+// ── 取得顯示時間：優先 now_time，fallback fake_time ───────────────────────
+function getDisplayTime(gameData, rec) {
+  const nowTime = (gameData?.now_time || '').trim();
+  if (nowTime) return nowTime;
+  // fallback: fake_time（精確到分鐘）
+  return (rec.fake_time || rec.created_at || '').slice(0, 16).replace('T', ' ');
+}
+
 async function doQuery() {
   const serial = document.getElementById('input-serial').value.trim();
   const date   = document.getElementById('input-date').value;
@@ -289,7 +295,7 @@ async function doQuery() {
   btn.innerHTML = '<span class="spinner"></span>查詢中…';
 
   try {
-    // Step 1: License → objectId (支援序號或 Email)
+    // Step 1: License → objectId
     log('🔍 查詢學員資料…', 'spin');
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(serial);
     const licUrl  = isEmail
@@ -302,7 +308,6 @@ async function doQuery() {
       showError(isEmail ? '找不到該 Email，請確認後重試' : '找不到該學員代碼，請確認後重試');
       return;
     }
-    // user_name 查詢可能回傳陣列（多筆），取第一筆
     const licData  = Array.isArray(licJson.data) ? licJson.data[0] : licJson.data;
     if (!licData) { showError(isEmail ? '找不到該 Email，請確認後重試' : '找不到該學員代碼，請確認後重試'); return; }
     const objectId = licData.objectId;
@@ -319,7 +324,7 @@ async function doQuery() {
       return;
     }
 
-    // Step 3: Date filter
+    // Step 3: Date filter — 比對 fake_time 日期
     const filtered = recJson.data.filter(r =>
       (r.fake_time || r.created_at || '').slice(0, 10) === date
     );
@@ -331,16 +336,17 @@ async function doQuery() {
 
     // Step 4: analyze_details per record
     const results = [];
+    const feMap    = { 0:'乾粉滅火器', 1:'CO₂滅火器', 2:'水滅火器', 3:'住宅用滅火器' };
+    const sceneMap = { 0:'單層油盤', 1:'雙層油盤', 2:'障礙物油盤1', 3:'障礙物油盤2', 4:'水泥牆油盤', 5:'電器火災', 6:'電線火災', 7:'油鍋火災', 8:'瓦斯管線火災', 9:'紙箱火災', 10:'機車火災', 11:'加熱設備火災', 12:'B類油桶火災', 13:'馬達接風管火災', 14:'機台內部火災' };
+
     for (let i = 0; i < filtered.length; i++) {
       const rec = filtered[i];
       const pressRaw  = rec.press_data || '{}';
       const pressObj  = typeof pressRaw === 'string' ? JSON.parse(pressRaw) : pressRaw;
       const dataItems = pressObj.data || [];
-const sceneId   = parseInt(rec.scene ?? 0);
-      const feMap    = { 0:'乾粉滅火器', 1:'CO₂滅火器', 2:'水滅火器', 3:'住宅用滅火器' };
-      const sceneMap = { 0:'單層油盤', 1:'雙層油盤', 2:'障礙物油盤1', 3:'障礙物油盤2', 4:'水泥牆油盤', 5:'電器火災', 6:'電線火災', 7:'油鍋火災', 8:'瓦斯管線火災', 9:'紙箱火災', 10:'機車火災', 11:'加熱設備火災', 12:'B類油桶火災', 13:'馬達接風管火災', 14:'機台內部火災' };
+      const sceneId   = parseInt(rec.scene ?? 0);
 
-      // 無 press_data：直接以失敗條目寫入後跳至下筆
+      // 無 press_data：記為失敗，時間用 fake_time
       if (!dataItems.length) {
         log(`⚠ 第 ${i+1} 筆無 press_data，記為失敗`, 'warn');
         results.push({
@@ -397,7 +403,6 @@ const sceneId   = parseInt(rec.scene ?? 0);
         } else {
           ratingResult = analyzeGame(sceneId, feId, gameTimer, timeLimit, rawPressData, rawPressData.length, isSuccess, parseInt(gameData.is_outfire ?? 0), isSpWrong);
         }
-        const rating = ratingResult.rating;
 
         const hideItems = d.hide_items;
         const otherText = hideItems
@@ -405,7 +410,8 @@ const sceneId   = parseInt(rec.scene ?? 0);
           : '—';
 
         results.push({
-          date:            (rec.fake_time || rec.created_at || date).slice(0,16).replace('T',' '),
+          // ── 優先用 gameData.now_time，沒有才用 fake_time ──
+          date:            getDisplayTime(gameData, rec),
           player_id:       rec.player_id || '',
           scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
           sub_index:       dataItems.length > 1 ? j + 1 : null,
@@ -422,7 +428,7 @@ const sceneId   = parseInt(rec.scene ?? 0);
           kill_time:       d.kill_time || (parseFloat(gameData.kill_fire_time ?? 0).toFixed(2) + 's'),
           sp_wrong:        d.special_error?.text || (isSpWrong ? '有' : '無'),
           other_details:   otherText,
-          rating,
+          rating:          ratingResult.rating,
         });
       }
     }
@@ -453,7 +459,7 @@ function renderTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
-      <td>${esc(r.date)}</td>
+      <td style="font-family:'Rajdhani',sans-serif;font-size:.8rem;color:var(--text)">${esc(r.date)}</td>
       <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
       <td>${esc(r.scene)}</td>
       <td style="font-family:'Rajdhani',sans-serif">第 ${r.sub_index != null ? r.sub_index : 1} 次</td>
@@ -512,14 +518,15 @@ function ratingCell(v) {
 
 function exportCSV() {
   if (!lastData) return;
-  const headers = ['#','日期','學員代碼','場景','操作次數','選擇滅火器',
+  const headers = ['#','時間','學員代碼','場景','操作次數','選擇滅火器',
     '20秒內試噴','有效射程外試噴','試噴距離(m)','最大射程開始滅火','開始滅火距離(m)',
     '油不濺出(全程)','噴射無斷續','滅火成功','完成時間','特殊失誤','其他操作細項','綜合評定'];
   const rows = lastData.records.map((r,i) => [
-    i+1, r.date, r.player_id, r.scene, '第'+ (r.sub_index != null ? r.sub_index : 1) + '次', r.select_fe,
+    i+1, r.date, r.player_id, r.scene, '第'+(r.sub_index != null ? r.sub_index : 1)+'次', r.select_fe,
     boolStr(r.trial_in_20s), boolStr(r.trial_outside), r.trial_distance,
     boolStr(r.fire_max_range), r.fire_distance, boolStr(r.no_oil_splash), boolStr(r.no_intermittent),
-    boolStr(r.is_success), r.kill_time, r.sp_wrong, r.other_details, r.rating.replace(/🥇\s*/,'').replace(/🥈\s*/,'').replace(/🥉\s*/,'')
+    boolStr(r.is_success), r.kill_time, r.sp_wrong, r.other_details,
+    r.rating.replace(/🥇\s*/,'').replace(/🥈\s*/,'').replace(/🥉\s*/,'')
   ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
   const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   const a = document.createElement('a');
@@ -528,33 +535,22 @@ function exportCSV() {
   a.click();
 }
 
-// ── Rating logic (ported from analyze_result.php) ──────────────────────────
-
+// ── Rating logic ────────────────────────────────────────────────────────────
 function analyzeGame(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, outfire, sp_wrong) {
-  if (id < 5)            return analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong);
-  else if (id <= 8)      return analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong);
-  else                   return analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong);
+  if (id < 5)       return analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong);
+  else if (id <= 8) return analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong);
+  else              return analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong);
 }
-
 function analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong) {
   let count = 0;
   if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
     if (pressData[0].Start_Time <= 20) count++;
     switch (FireExtin_id) {
-      case 0:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 5) count++;
-        break;
-      case 1:
-        if (pressData[0].Distance >= 4) count++;
-        if (pressData[1].Distance >= 2) count++;
-        break;
-      case 2: case 3:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++;
-        break;
+      case 0: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 5) count++; break;
+      case 1: if (pressData[0].Distance >= 4) count++; if (pressData[1].Distance >= 2) count++; break;
+      case 2: case 3: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++; break;
     }
-    if (!outfire)       count++;
+    if (!outfire)        count++;
     if (pressCount <= 2) count++;
     if (isSuccess == 1)  count++;
   }
@@ -562,7 +558,6 @@ function analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, 
   if (sp_wrong) count--; else count++;
   return { rating: count >= 5 ? '70分的僥倖成功' : '60分的僥倖成功', medal: 'none', score: count >= 5 ? 70 : 60 };
 }
-
 function analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong) {
   let count = 0;
   if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
@@ -574,24 +569,14 @@ function analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, 
   if (sp_wrong) count--; else count++;
   return { rating: count >= 2 ? '70分的僥倖成功' : '60分的僥倖成功', medal: 'none', score: count >= 2 ? 70 : 60 };
 }
-
 function analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong) {
   let count = 0;
   if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
     if (pressData[0].Start_Time <= 20) count++;
     switch (FireExtin_id) {
-      case 0:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 5) count++;
-        break;
-      case 1:
-        if (pressData[0].Distance >= 4) count++;
-        if (pressData[1].Distance >= 2) count++;
-        break;
-      case 2: case 3:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++;
-        break;
+      case 0: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 5) count++; break;
+      case 1: if (pressData[0].Distance >= 4) count++; if (pressData[1].Distance >= 2) count++; break;
+      case 2: case 3: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++; break;
     }
     if (pressCount <= 2) count++;
     if (isSuccess == 1)  count++;
@@ -601,50 +586,45 @@ function analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, 
   if (sp_wrong) count--; else count++;
   return { rating: count > 5 ? '70分的僥倖成功' : '60分的僥倖成功', medal: 'none', score: count > 5 ? 70 : 60 };
 }
-
 function getPerfectRating(id, FireExtin_id, game_timer) {
   const t = {
-    0: {0:[12,15], 1:[13,15], 2:[11,12], 3:[11,12]},
-    1: {0:[16,18], 1:[17,18], 2:[18,20], 3:[18,20]},
-    2: {0:[13,15], 1:[15,16], 2:[12,14], 3:[12,14]},
-    3: {0:[16,18], 1:[17,18], 2:[17,19], 3:[17,19]},
-    4: {0:[12,13], 1:[14,15], 2:[11,12], 3:[11,12]}
+    0:{0:[12,15],1:[13,15],2:[11,12],3:[11,12]},
+    1:{0:[16,18],1:[17,18],2:[18,20],3:[18,20]},
+    2:{0:[13,15],1:[15,16],2:[12,14],3:[12,14]},
+    3:{0:[16,18],1:[17,18],2:[17,19],3:[17,19]},
+    4:{0:[12,13],1:[14,15],2:[11,12],3:[11,12]}
   };
-  const th = (t[id] ?? {})[FireExtin_id] ?? [999, 999];
-  if (game_timer < th[0])                           return { rating: '🥇 金牌高手 成功', medal: 'gold',   score: 100 };
-  if (game_timer >= th[0] && game_timer < th[1])    return { rating: '🥈 銀牌高手 成功', medal: 'silver', score: 90  };
-  return                                                   { rating: '🥉 銅牌高手 成功', medal: 'bronze', score: 80  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { rating:'🥇 金牌高手 成功', medal:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { rating:'🥈 銀牌高手 成功', medal:'silver', score:90  };
+  return                                                { rating:'🥉 銅牌高手 成功', medal:'bronze', score:80  };
 }
-
 function getPerfectRatingScenes5to8(id, FireExtin_id, game_timer) {
   const t = {
-    5: {0:[7,8],   1:[7,8],   2:[6,7],   3:[6,7]},
-    6: {0:[8,9],   1:[8,9],   2:[6,7],   3:[6,7]},
-    7: {0:[999,999],1:[999,999],2:[999,999],3:[7,8]},
-    8: {0:[10,11], 1:[10,11], 2:[8,9],   3:[8,9]}
+    5:{0:[7,8],  1:[7,8],  2:[6,7],  3:[6,7]},
+    6:{0:[8,9],  1:[8,9],  2:[6,7],  3:[6,7]},
+    7:{0:[999,999],1:[999,999],2:[999,999],3:[7,8]},
+    8:{0:[10,11],1:[10,11],2:[8,9],  3:[8,9]}
   };
-  const th = (t[id] ?? {})[FireExtin_id] ?? [999, 999];
-  if (game_timer < th[0])                           return { rating: '🥇 金牌高手 成功', medal: 'gold',   score: 100 };
-  if (game_timer >= th[0] && game_timer < th[1])    return { rating: '🥈 銀牌高手 成功', medal: 'silver', score: 90  };
-  return                                                   { rating: '🥉 銅牌高手 成功', medal: 'bronze', score: 80  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { rating:'🥇 金牌高手 成功', medal:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { rating:'🥈 銀牌高手 成功', medal:'silver', score:90  };
+  return                                                { rating:'🥉 銅牌高手 成功', medal:'bronze', score:80  };
 }
-
 function getPerfectRatingScenes9Plus(id, FireExtin_id, game_timer) {
   const t = {
-    9:  {0:[9,10],  1:[999,999],2:[9,10],  3:[9,10]},
-    10: {0:[13,14], 1:[13,14],  2:[13,14], 3:[13,14]},
-    11: {0:[14,15], 1:[14,15],  2:[14,15], 3:[14,15]},
-    12: {0:[11,14], 1:[13,14],  2:[13,14], 3:[13,14]},
-    13: {0:[12,13], 1:[13,14],  2:[13,14], 3:[13,14]},
-    14: {0:[14,15], 1:[15,16],  2:[15,16], 3:[15,16]}
+    9: {0:[9,10], 1:[999,999],2:[9,10], 3:[9,10]},
+    10:{0:[13,14],1:[13,14], 2:[13,14],3:[13,14]},
+    11:{0:[14,15],1:[14,15], 2:[14,15],3:[14,15]},
+    12:{0:[11,14],1:[13,14], 2:[13,14],3:[13,14]},
+    13:{0:[12,13],1:[13,14], 2:[13,14],3:[13,14]},
+    14:{0:[14,15],1:[15,16], 2:[15,16],3:[15,16]}
   };
-  const th = (t[id] ?? {})[FireExtin_id] ?? [999, 999];
-  if (game_timer < th[0])                           return { rating: '🥇 金牌高手 成功', medal: 'gold',   score: 100 };
-  if (game_timer >= th[0] && game_timer < th[1])    return { rating: '🥈 銀牌高手 成功', medal: 'silver', score: 90  };
-  return                                                   { rating: '🥉 銅牌高手 成功', medal: 'bronze', score: 80  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { rating:'🥇 金牌高手 成功', medal:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { rating:'🥈 銀牌高手 成功', medal:'silver', score:90  };
+  return                                                { rating:'🥉 銅牌高手 成功', medal:'bronze', score:80  };
 }
-
-// ───────────────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>

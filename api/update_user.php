@@ -1,11 +1,6 @@
 <?php
-
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
-
+// update_user.php - 更新管理員帳號／密碼
+// CORS 由 config.php 統一處理，此處不重複設定
 require_once 'config.php';
 
 try {
@@ -56,8 +51,8 @@ try {
         $fields[] = 'password = :new_password';
         $params[':new_password'] = password_hash($new_password, PASSWORD_BCRYPT);
     }
-    $fields[]              = 'updated_at = NOW()';
-    $params[':objectId']   = $user['objectId'];
+    $fields[]            = 'updated_at = NOW()';
+    $params[':objectId'] = $user['objectId'];
 
     $sql  = 'UPDATE `User` SET ' . implode(', ', $fields) . ' WHERE objectId = :objectId';
     $stmt = $conn->prepare($sql);
@@ -72,3 +67,4 @@ try {
 } catch (Exception $e) {
     sendResponse(false, 'Error: ' . $e->getMessage(), null, 500);
 }
+?>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAway XR — License 管理後台 使用教學</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0c0b;
+  --surface: #161412;
+  --panel: #1c1916;
+  --border: #2a2520;
+  --accent: #c84b31;
+  --accent2: #2d5a3d;
+  --accent3: #b5741a;
+  --text: #f0ebe4;
+  --muted: #7a6e65;
+  --dim: #3a342e;
+  --glow: rgba(200,75,49,.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: 300;
+  line-height: 1.8;
+  min-height: 100vh;
+}
+
+/* ── Background texture ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(200,75,49,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(45,90,61,.05) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ── */
+.layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; position: relative; z-index: 1; }
+
+/* ── Sidebar ── */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+.sidebar-brand {
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.sidebar-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: .2rem .6rem;
+  border-radius: 3px;
+  margin-bottom: .6rem;
+}
+.sidebar-title {
+  font-family: 'Syne', sans-serif;
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.3;
+}
+.sidebar-sub {
+  font-size: .7rem;
+  color: var(--muted);
+  margin-top: .2rem;
+}
+
+.nav-section {
+  padding: .5rem 1.5rem .25rem;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: .5rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .55rem 1.5rem;
+  font-size: .82rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .15s, background .15s;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+.nav-item:hover { color: var(--text); background: rgba(240,235,228,.03); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(200,75,49,.06); }
+.nav-icon { font-size: .9rem; width: 16px; text-align: center; flex-shrink: 0; }
+
+/* ── Main content ── */
+.main { padding: 3rem 4rem; max-width: 860px; }
+
+/* ── Hero ── */
+.hero {
+  margin-bottom: 4rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+}
+.hero-eyebrow {
+  font-family: 'Syne', sans-serif;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+.hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+.hero-title em { color: var(--accent); font-style: normal; }
+.hero-desc {
+  font-size: .95rem;
+  color: var(--muted);
+  max-width: 540px;
+  line-height: 1.8;
+}
+
+/* ── Section ── */
+.section {
+  margin-bottom: 4rem;
+  scroll-margin-top: 2rem;
+}
+.section-num {
+  font-family: 'Syne', sans-serif;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: .5rem;
+}
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.section-title .icon {
+  width: 36px;
+  height: 36px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.section-body {
+  font-size: .9rem;
+  color: rgba(240,235,228,.7);
+  line-height: 1.9;
+}
+.section-body p { margin-bottom: .8rem; }
+
+/* ── Steps ── */
+.steps { display: flex; flex-direction: column; gap: 1rem; margin: 1.5rem 0; }
+.step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+.step-num {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: .8rem;
+  font-weight: 800;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+.step-num.green { background: var(--accent2); }
+.step-num.amber { background: var(--accent3); }
+.step-content { font-size: .88rem; color: rgba(240,235,228,.75); padding-top: .5rem; }
+.step-content strong { color: var(--text); font-weight: 500; }
+
+/* ── Callout ── */
+.callout {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin: 1.2rem 0;
+  display: flex;
+  gap: .75rem;
+  font-size: .85rem;
+  line-height: 1.7;
+}
+.callout.info { border-color: rgba(45,90,61,.4); background: rgba(45,90,61,.08); }
+.callout.warn { border-color: rgba(181,116,26,.4); background: rgba(181,116,26,.08); }
+.callout.danger { border-color: rgba(200,75,49,.3); background: rgba(200,75,49,.06); }
+.callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+.callout-body { color: rgba(240,235,228,.7); }
+.callout-body strong { color: var(--text); }
+
+/* ── UI mockup cards ── */
+.ui-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+.ui-card-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: .6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.r { background: #c84b31; }
+.dot.y { background: #b5741a; }
+.dot.g { background: #2d5a3d; }
+.ui-card-label { font-size: .68rem; color: var(--muted); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+.ui-card-body { padding: 1.2rem 1.5rem; }
+
+/* ── Badge demos ── */
+.badge-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0; }
+.bdg {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .8rem;
+  border-radius: 5px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+.bdg.green { background: rgba(45,90,61,.15); color: #4a9e5c; border: 1px solid rgba(45,90,61,.3); }
+.bdg.red   { background: rgba(200,75,49,.12); color: #e06548; border: 1px solid rgba(200,75,49,.25); }
+.bdg.amber { background: rgba(181,116,26,.12); color: #d4952a; border: 1px solid rgba(181,116,26,.25); }
+.bdg.gray  { background: rgba(122,110,101,.1); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── Field demo ── */
+.field-demo {
+  background: var(--bg);
+  border: 1px solid var(--dim);
+  border-radius: 8px;
+  padding: .65rem 1rem;
+  font-size: .85rem;
+  color: var(--muted);
+  margin: .4rem 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+.field-label { font-size: .68rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: .3rem; margin-top: .8rem; }
+
+/* ── Table demo ── */
+.demo-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin: .8rem 0; }
+.demo-table th { padding: .5rem .8rem; text-align: left; font-size: .65rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+.demo-table td { padding: .55rem .8rem; border-bottom: 1px solid rgba(42,37,32,.6); color: rgba(240,235,228,.65); vertical-align: middle; }
+.demo-table tr:last-child td { border-bottom: none; }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: var(--muted); }
+
+/* ── Bar demo ── */
+.bar-wrap { display: flex; align-items: center; gap: .6rem; font-size: .78rem; color: var(--muted); margin: .6rem 0; }
+.bar-track { flex: 1; height: 6px; background: var(--dim); border-radius: 3px; max-width: 120px; }
+.bar-fill { height: 100%; border-radius: 3px; }
+.bar-fill.g { background: var(--accent2); }
+.bar-fill.a { background: var(--accent3); }
+.bar-fill.r { background: var(--accent); }
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+
+/* ── Scroll indicator ── */
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 260px;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+  z-index: 100;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width .1s;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 2rem 1.5rem; }
+  .progress-bar { left: 0; }
+  .hero-title { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-badge">FireAway XR</div>
+      <div class="sidebar-title">License 管理後台<br>使用教學</div>
+      <div class="sidebar-sub">管理員操作手冊</div>
+    </div>
+
+    <div class="nav-section">入門</div>
+    <a class="nav-item active" href="#intro" onclick="setActive(this)">
+      <span class="nav-icon">🏠</span> 系統概覽
+    </a>
+    <a class="nav-item" href="#login" onclick="setActive(this)">
+      <span class="nav-icon">🔐</span> 登入後台
+    </a>
+
+    <div class="nav-section">授權管理</div>
+    <a class="nav-item" href="#dashboard" onclick="setActive(this)">
+      <span class="nav-icon">📊</span> 儀表板
+    </a>
+    <a class="nav-item" href="#add-license" onclick="setActive(this)">
+      <span class="nav-icon">➕</span> 新增授權
+    </a>
+    <a class="nav-item" href="#edit-license" onclick="setActive(this)">
+      <span class="nav-icon">✏️</span> 編輯授權
+    </a>
+    <a class="nav-item" href="#toggle-license" onclick="setActive(this)">
+      <span class="nav-icon">⏸</span> 啟用／停用
+    </a>
+
+    <div class="nav-section">裝置管理</div>
+    <a class="nav-item" href="#devices" onclick="setActive(this)">
+      <span class="nav-icon">🖥</span> 查看綁定裝置
+    </a>
+    <a class="nav-item" href="#unbind" onclick="setActive(this)">
+      <span class="nav-icon">🔓</span> 解除裝置綁定
+    </a>
+
+    <div class="nav-section">帳號</div>
+    <a class="nav-item" href="#account" onclick="setActive(this)">
+      <span class="nav-icon">⚙️</span> 帳號設定
+    </a>
+    <a class="nav-item" href="#faq" onclick="setActive(this)">
+      <span class="nav-icon">❓</span> 常見問題
+    </a>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div class="hero" id="intro">
+      <div class="hero-eyebrow">管理員操作手冊 v1.0</div>
+      <h1 class="hero-title">FireAway XR<br><em>License</em> 管理後台</h1>
+      <p class="hero-desc">本手冊說明如何透過管理後台新增、編輯、停用授權序號，以及查看並管理每個序號所綁定的實機裝置。</p>
+    </div>
+
+    <!-- ── 登入 ── -->
+    <section class="section" id="login">
+      <div class="section-num">01 / 入門</div>
+      <h2 class="section-title"><span class="icon">🔐</span>登入後台</h2>
+      <div class="section-body">
+        <p>開啟管理網頁後，輸入管理員帳號與密碼即可登入。登入狀態會保存在瀏覽器中，下次開啟網頁不需重新登入。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">開啟管理後台網址</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">輸入<strong>帳號</strong>與<strong>密碼</strong>，按下登入或按 <strong>Enter</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">登入成功後自動跳至授權列表畫面</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">若看到「帳號或密碼錯誤」，請確認大小寫是否正確。連續輸錯請聯絡系統管理員重設密碼。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 儀表板 ── -->
+    <section class="section" id="dashboard">
+      <div class="section-num">02 / 授權管理</div>
+      <h2 class="section-title"><span class="icon">📊</span>儀表板</h2>
+      <div class="section-body">
+        <p>登入後會看到三個統計數字，以及下方的完整授權列表。</p>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-card-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="ui-card-label">儀表板概覽</div>
+        </div>
+        <div class="ui-card-body">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.2rem">
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem">
+              <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text)">12</div>
+              <div style="font-size:.68rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">授權總數</div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem">
+              <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:#4a9e5c">9</div>
+              <div style="font-size:.68rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">啟用中</div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem">
+              <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:#e06548">3</div>
+              <div style="font-size:.68rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">已停用</div>
+            </div>
+          </div>
+          <table class="demo-table">
+            <thead><tr>
+              <th></th><th>授權碼</th><th>單位名稱</th><th>無限次數</th><th>裝置</th><th>狀態</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted);font-size:.7rem">▶</td>
+                <td class="mono">FAXR-0001</td>
+                <td style="color:var(--text);font-weight:500">台北消防局</td>
+                <td><span class="bdg amber">∞ 無限</span></td>
+                <td style="color:var(--muted);font-size:.8rem">2 / 3</td>
+                <td><span class="bdg green">✔ 啟用</span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);font-size:.7rem">▶</td>
+                <td class="mono">FAXR-0002</td>
+                <td style="color:var(--text);font-weight:500">新北訓練中心</td>
+                <td><span class="bdg red">限制</span></td>
+                <td style="color:var(--muted);font-size:.8rem">1 / 5</td>
+                <td><span class="bdg red">✘ 停用</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-body">
+        <p>列表欄位說明：</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num green">▶</div>
+          <div class="step-content"><strong>展開箭頭</strong> — 點擊整列可展開裝置清單，查看此序號綁定了哪些實機</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">碼</div>
+          <div class="step-content"><strong>授權碼</strong> — 給使用者輸入的序號字串</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">機</div>
+          <div class="step-content"><strong>裝置</strong> — 目前已綁定台數 / 上限台數（∞ 表示無限制）</div>
+        </div>
+      </div>
+
+      <div class="section-body" style="margin-top:.8rem">
+        <p>上方搜尋欄可以即時篩選，支援輸入<strong>單位名稱</strong>、<strong>授權碼</strong>或 <strong>Email</strong>。</p>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 新增授權 ── -->
+    <section class="section" id="add-license">
+      <div class="section-num">03 / 授權管理</div>
+      <h2 class="section-title"><span class="icon">➕</span>新增授權</h2>
+      <div class="section-body">
+        <p>點擊右上角「＋ 新增 License」按鈕開啟表單，填寫以下欄位後按儲存。</p>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-card-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="ui-card-label">新增 License 表單</div>
+        </div>
+        <div class="ui-card-body">
+          <div class="field-label">單位名稱 *</div>
+          <div class="field-demo">台北市消防局</div>
+          <div class="field-label">Email（選填）</div>
+          <div class="field-demo">fire@taipei.gov.tw</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--dim);border-radius:8px;padding:.65rem 1rem;margin:.8rem 0">
+            <span style="font-size:.85rem">無限次數（infinity）</span>
+            <div style="width:44px;height:24px;background:#2d5a3d;border-radius:12px;position:relative">
+              <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;right:3px;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+            </div>
+          </div>
+          <div class="field-label">裝置上限台數（留空 = 無限）</div>
+          <div class="field-demo">3</div>
+        </div>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content"><strong>單位名稱</strong>（必填）— 填入購買單位或使用者名稱，僅供管理用途</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content"><strong>Email</strong>（選填）— 方便之後聯絡或搜尋</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content"><strong>無限次數</strong> — 開啟表示此序號的內部機能使用次數不限；關閉後需填寫使用次數上限</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content"><strong>裝置上限台數</strong> — 此序號最多可在幾台實機上啟動。留空代表無限制台數</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">按下<strong>儲存</strong>，系統會自動產生序號並寫入資料庫</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body"><strong>授權碼</strong>由系統在後端自動產生，管理員無法自訂序號內容。新增後可在列表中找到對應的授權碼，再提供給使用者。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 編輯授權 ── -->
+    <section class="section" id="edit-license">
+      <div class="section-num">04 / 授權管理</div>
+      <h2 class="section-title"><span class="icon">✏️</span>編輯授權</h2>
+      <div class="section-body">
+        <p>點擊列表中任一筆授權右側的「<strong>編輯</strong>」按鈕，開啟編輯表單，可修改以下內容：</p>
+      </div>
+
+      <div class="badge-row">
+        <span class="bdg gray">單位名稱</span>
+        <span class="bdg gray">Email</span>
+        <span class="bdg gray">無限次數開關</span>
+        <span class="bdg gray">使用次數上限</span>
+        <span class="bdg gray">裝置上限台數</span>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body"><strong>裝置上限台數</strong>修改後立即生效。若改小於現有綁定數量，已綁定的裝置仍可繼續使用，但新裝置無法再綁定，直到有裝置被解除綁定為止。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 啟用停用 ── -->
+    <section class="section" id="toggle-license">
+      <div class="section-num">05 / 授權管理</div>
+      <h2 class="section-title"><span class="icon">⏸</span>啟用／停用授權</h2>
+      <div class="section-body">
+        <p>每筆授權右側有「<strong>停用</strong>」或「<strong>啟用</strong>」按鈕，點擊後立即生效，無需確認。</p>
+      </div>
+
+      <div class="badge-row">
+        <span class="bdg green">✔ 啟用中 → 點擊「停用」</span>
+        <span class="bdg red">✘ 已停用 → 點擊「啟用」</span>
+      </div>
+
+      <div class="callout danger">
+        <span class="callout-icon">🚫</span>
+        <div class="callout-body"><strong>停用後，該序號在所有裝置上將立即無法驗證通過</strong>，使用者下次啟動 App 時會收到「序號已停用」的錯誤訊息。裝置綁定記錄不會被刪除，重新啟用後可恢復使用。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 查看裝置 ── -->
+    <section class="section" id="devices">
+      <div class="section-num">06 / 裝置管理</div>
+      <h2 class="section-title"><span class="icon">🖥</span>查看綁定裝置</h2>
+      <div class="section-body">
+        <p>點擊授權列表中的任意一列（非按鈕區域），即可展開該序號的裝置清單。</p>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-card-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="ui-card-label">裝置清單展開示意</div>
+        </div>
+        <div class="ui-card-body">
+          <div style="font-size:.72rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem">
+            🖥 綁定裝置（2 / 3 台）
+          </div>
+          <div class="bar-wrap">
+            <span>67%</span>
+            <div class="bar-track"><div class="bar-fill g" style="width:67%"></div></div>
+          </div>
+          <table class="demo-table" style="margin-top:.8rem">
+            <thead><tr><th>裝置 ID</th><th>平台</th><th>首次綁定</th><th>最後驗證</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="mono">a3f9c1b2d4e5…</td>
+                <td><span class="bdg green" style="font-size:.68rem;padding:.15rem .5rem">Android</span></td>
+                <td style="font-size:.75rem;color:var(--muted)">2024-11-01 09:23</td>
+                <td style="font-size:.75rem;color:var(--muted)">2025-05-10 14:05</td>
+                <td><span style="color:#e06548;font-size:.72rem;cursor:pointer;border:1px solid rgba(200,75,49,.3);padding:.2rem .5rem;border-radius:4px">解除</span></td>
+              </tr>
+              <tr>
+                <td class="mono">7e2b8f0a1c3d…</td>
+                <td><span class="bdg green" style="font-size:.68rem;padding:.15rem .5rem">Windows</span></td>
+                <td style="font-size:.75rem;color:var(--muted)">2024-12-15 16:40</td>
+                <td style="font-size:.75rem;color:var(--muted)">2025-05-11 10:22</td>
+                <td><span style="color:#e06548;font-size:.72rem;cursor:pointer;border:1px solid rgba(200,75,49,.3);padding:.2rem .5rem;border-radius:4px">解除</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-body">
+        <p>各欄位說明：</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num green">ID</div>
+          <div class="step-content"><strong>裝置 ID</strong> — 裝置的唯一識別碼（SHA256 Hash），懸停可看完整碼</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">平</div>
+          <div class="step-content"><strong>平台</strong> — 裝置作業系統，例如 Android、Windows、iOS</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">首</div>
+          <div class="step-content"><strong>首次綁定</strong> — 此裝置第一次使用該序號驗證的時間</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">驗</div>
+          <div class="step-content"><strong>最後驗證</strong> — 此裝置最近一次啟動 App 並驗證的時間，可用來判斷裝置是否仍在使用中</div>
+        </div>
+      </div>
+
+      <div class="section-body" style="margin-top:.5rem">
+        <p>進度條顏色代表使用率：</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num green">●</div>
+          <div class="step-content"><span style="color:#4a9e5c">綠色</span> — 未達 70%，使用正常</div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">●</div>
+          <div class="step-content"><span style="color:#d4952a">黃色</span> — 達 70% 以上，即將到達上限</div>
+        </div>
+        <div class="step">
+          <div class="step-num">●</div>
+          <div class="step-content"><span style="color:#e06548">紅色</span> — 已達上限，無法再新增裝置</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 解除綁定 ── -->
+    <section class="section" id="unbind">
+      <div class="section-num">07 / 裝置管理</div>
+      <h2 class="section-title"><span class="icon">🔓</span>解除裝置綁定</h2>
+      <div class="section-body">
+        <p>當使用者更換裝置，或序號被誤用於不明裝置時，可從管理後台解除綁定，釋放裝置名額。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">點擊該序號列，展開裝置清單</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">找到要解除的裝置，點擊右側「<span style="color:#e06548">解除</span>」按鈕</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">確認彈窗後，裝置立即從綁定名單中移除，名額釋放</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">若要一次清除所有裝置，可點擊清單右上角的「<strong>全部解除</strong>」，這會移除此序號下的所有裝置記錄，操作不可復原。</div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">解除綁定後，使用者只需在新裝置上重新啟動 App 並輸入序號，系統會自動重新綁定該裝置。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 帳號設定 ── -->
+    <section class="section" id="account">
+      <div class="section-num">08 / 帳號</div>
+      <h2 class="section-title"><span class="icon">⚙️</span>帳號設定</h2>
+      <div class="section-body">
+        <p>點擊右上角「⚙ 帳號設定」可修改管理員帳號名稱與密碼。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">「<strong>目前帳號</strong>」欄可直接改成新帳號名稱（不改則保持原樣）</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">「<strong>舊密碼</strong>」為必填，用於確認身分</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">「<strong>新密碼</strong>」與「確認新密碼」填寫新密碼（至少 6 個字元）；不改密碼可留空</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">按下「<strong>儲存變更</strong>」後立即生效，下次登入使用新密碼</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 常見問題 ── -->
+    <section class="section" id="faq">
+      <div class="section-num">09 / 常見問題</div>
+      <h2 class="section-title"><span class="icon">❓</span>常見問題</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>使用者說「此序號已達裝置上限」但他只有一台機器？</strong><br>
+            可能是舊裝置的綁定記錄尚未清除。進入該序號的裝置清單，確認有無不明裝置，將其解除綁定後使用者即可重新驗證。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>停用序號後，使用者手上的裝置會立即斷線嗎？</strong><br>
+            已在使用中的 App 不會立即中斷，但下次重新啟動 App 時驗證會失敗並顯示錯誤訊息。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>裝置上限填空（無限制）和填很大的數字有什麼差別？</strong><br>
+            填空代表後端完全不進行裝置數量檢查，效率略高；填數字則會每次驗證時計算綁定數量。建議不需限制時留空。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>網頁開啟後看到「載入中」很久？</strong><br>
+            後台 API 部署於 Render 免費方案，閒置一段時間後伺服器會進入休眠。首次連線需要約 30–60 秒喚醒，屬正常現象，稍等即可。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>「最後驗證」時間很久以前，代表什麼？</strong><br>
+            代表該裝置長時間未啟動 App。可作為判斷是否為閒置裝置的依據，必要時可解除綁定回收名額。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="padding:2rem 0;text-align:center;color:var(--muted);font-size:.75rem;border-top:1px solid var(--border)">
+      FireAway XR License 管理後台 · 管理員操作手冊
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Progress bar
+const prog = document.getElementById('prog');
+window.addEventListener('scroll', () => {
+  const el = document.querySelector('.main');
+  const scrollTop = window.scrollY;
+  const docHeight = document.body.scrollHeight - window.innerHeight;
+  prog.style.width = Math.min(100, (scrollTop / docHeight) * 100) + '%';
+});
+
+// Nav active
+function setActive(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Auto-highlight nav on scroll
+const sections = document.querySelectorAll('.section');
+const navItems = document.querySelectorAll('.nav-item');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navItems.forEach(n => {
+    n.classList.remove('active');
+    if (n.getAttribute('href') === '#' + current) n.classList.add('active');
+  });
+  // Hero
+  if (window.scrollY < 200) {
+    navItems.forEach(n => n.classList.remove('active'));
+    document.querySelector('.nav-item[href="#intro"]').classList.add('active');
+  }
+});
+</script>
+</body>
+</html>

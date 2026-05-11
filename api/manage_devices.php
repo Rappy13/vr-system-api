@@ -17,9 +17,11 @@ function getBearerToken() {
 
 function validateToken($pdo, $token) {
     if (!$token) return false;
-    $stmt = $pdo->prepare('SELECT id FROM `User` WHERE token = ? AND token IS NOT NULL LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id FROM `User` WHERE token = ? LIMIT 1');
     $stmt->execute([$token]);
-    return $stmt->fetch() !== false;
+    $row = $stmt->fetch();
+    error_log('[validateToken] token=' . $token . ' found=' . ($row ? 'yes' : 'no'));
+    return $row !== false;
 }
 // ─────────────────────────────────────────────────────────────
 

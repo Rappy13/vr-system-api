@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VR 消防訓練紀錄系統</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>FireAway XR 訓練紀錄系統</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -36,7 +37,6 @@
   .page { display: none; position: relative; z-index: 1; min-height: 100vh; }
   .page.active { display: flex; }
 
-  /* ── PAGE 1 ── */
   #page-search { align-items: center; justify-content: center; padding: 2rem; }
   .search-card {
     background: var(--panel); border: 1px solid var(--border);
@@ -112,7 +112,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── PAGE 2 ── */
   #page-result { flex-direction: column; }
   .result-header {
     background: var(--panel); border-bottom: 1px solid var(--border);
@@ -162,61 +161,56 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-  /* ── 場景篩選列 ─────────────────────────────────────────── */
-  .scene-filter-bar {
+  /* ── Scene filter ── */
+  .scene-filter {
     background: var(--panel); border-bottom: 1px solid var(--border);
-    font-size: .82rem;
   }
   .scene-filter-header {
     display: flex; align-items: center; gap: .75rem;
-    padding: .65rem 2rem; cursor: pointer;
-    user-select: none; transition: background .15s;
+    padding: .65rem 2rem; cursor: pointer; user-select: none;
+    transition: background .15s;
   }
   .scene-filter-header:hover { background: rgba(255,255,255,.03); }
-  .scene-filter-title { font-weight: 600; color: var(--accent); letter-spacing: .5px; }
-  .scene-filter-summary { color: var(--muted); font-size: .75rem; flex: 1; }
-  .scene-filter-arrow { color: var(--muted); font-size: .7rem; transition: transform .25s; }
-  .scene-filter-arrow.collapsed { transform: rotate(180deg); }
-
+  .scene-filter-title {
+    font-size: .72rem; font-weight: 600; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .scene-filter-summary {
+    font-size: .75rem; color: var(--accent); margin-left: .25rem;
+  }
+  .scene-filter-arrow {
+    margin-left: auto; color: var(--muted); font-size: .8rem;
+    transition: transform .25s; line-height: 1;
+  }
+  .scene-filter.collapsed .scene-filter-arrow { transform: rotate(-90deg); }
   .scene-filter-body {
     padding: .75rem 2rem 1rem;
-    border-top: 1px solid var(--border);
-    overflow: hidden;
-    transition: max-height .3s ease, padding .3s ease, opacity .3s ease;
-    max-height: 300px; opacity: 1;
+    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+    overflow: hidden; transition: max-height .3s ease, padding .3s ease, opacity .3s;
+    max-height: 200px; opacity: 1;
   }
-  .scene-filter-body.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
-
-  .scene-toggles {
-    display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin-bottom: .75rem;
+  .scene-filter.collapsed .scene-filter-body {
+    max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; pointer-events: none;
   }
-  .scene-toggle-item {
-    display: flex; align-items: center; gap: .4rem;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 6px; padding: .3rem .65rem;
-    cursor: pointer; transition: border-color .15s, background .15s;
+  .scene-chip {
+    padding: .28rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); color: var(--muted);
+    background: transparent; font-family: inherit;
+    transition: background .15s, border-color .15s, color .15s;
     white-space: nowrap;
   }
-  .scene-toggle-item:hover { border-color: var(--accent); }
-  .scene-toggle-item.active { border-color: var(--accent); background: rgba(0,212,255,.08); }
-  .scene-toggle-item input[type=checkbox] { display: none; }
-  .scene-toggle-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--muted); transition: background .15s; flex-shrink: 0;
+  .scene-chip.on {
+    background: rgba(0,212,255,.12); border-color: var(--accent); color: var(--accent);
   }
-  .scene-toggle-item.active .scene-toggle-dot { background: var(--accent); }
-  .scene-toggle-label { font-size: .78rem; color: var(--text); }
-  .scene-toggle-item:not(.active) .scene-toggle-label { color: var(--muted); }
+  .scene-chip-divider { width: 1px; height: 20px; background: var(--border); margin: 0 .25rem; }
+  .scene-batch-btn {
+    padding: .28rem .75rem; border-radius: 20px; font-size: .72rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); color: var(--muted);
+    background: transparent; font-family: inherit; letter-spacing: .5px;
+    transition: border-color .15s, color .15s;
+  }
+  .scene-batch-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  .scene-filter-actions { display: flex; gap: .5rem; }
-  .btn-filter-action {
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); padding: .3rem .75rem; border-radius: 5px;
-    cursor: pointer; font-size: .75rem; font-family: inherit;
-    transition: background .15s, border-color .15s;
-  }
-  .btn-filter-action:hover { background: var(--border); border-color: var(--accent); }
-  .btn-filter-deselect:hover { border-color: var(--danger); color: var(--danger); }
 </style>
 </head>
 <body>
@@ -225,14 +219,14 @@
 <div id="page-search" class="page active">
   <div class="search-card">
     <div class="logo-wrap">
-      <div class="logo-icon">🔥</div>
-      <div class="logo-title">VR Fire Training</div>
-      <div class="logo-sub">消防訓練紀錄查詢系統</div>
+      <div class="logo-icon"><img src="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png" alt="icon" style="width:100%;height:100%;object-fit:contain;border-radius:inherit;"></div>
+      <div class="logo-title">FireAway XR</div>
+      <div class="logo-sub">訓練紀錄查詢系統</div>
     </div>
     <div class="field-group">
-      <label class="field-label" for="input-serial">學員代碼 / Serial Code</label>
+      <label class="field-label" for="input-serial">Email</label>
       <input id="input-serial" class="field-input" type="text"
-             placeholder="例如：TEST-001" autocomplete="off" spellcheck="false">
+             placeholder="輸入Email" autocomplete="off" spellcheck="false">
     </div>
     <div class="field-group">
       <label class="field-label" for="input-date">訓練日期</label>
@@ -249,44 +243,43 @@
   <div class="result-header">
     <button class="btn-back" onclick="goBack()">← 返回查詢</button>
     <div class="result-meta">
-      <div class="meta-chip">學員：<span id="meta-serial">—</span></div>
+      <div class="meta-chip">使用者：<span id="meta-serial">—</span></div>
       <div class="meta-chip">日期：<span id="meta-date">—</span></div>
       <div class="meta-chip">共 <span id="meta-count">0</span> 筆紀錄</div>
     </div>
     <button class="btn-export" onclick="exportCSV()">⬇ 匯出 CSV</button>
   </div>
-  <!-- 場景篩選 -->
-  <div id="scene-filter-bar" class="scene-filter-bar">
-    <div class="scene-filter-header" onclick="toggleFilterBar()">
-      <span class="scene-filter-title">🎯 場景篩選</span>
-      <span id="scene-filter-summary" class="scene-filter-summary">全部顯示</span>
-      <span id="scene-filter-arrow" class="scene-filter-arrow">▲</span>
+
+  <!-- Scene filter -->
+  <div class="scene-filter" id="scene-filter">
+    <div class="scene-filter-header" onclick="toggleSceneFilter()">
+      <span class="scene-filter-title">場景篩選</span>
+      <span class="scene-filter-summary" id="scene-filter-summary">全部顯示</span>
+      <span class="scene-filter-arrow">▼</span>
     </div>
-    <div id="scene-filter-body" class="scene-filter-body">
-      <div class="scene-toggles" id="scene-toggles"></div>
-      <div class="scene-filter-actions">
-        <button onclick="setAllScenes(true)"  class="btn-filter-action">全選</button>
-        <button onclick="setAllScenes(false)" class="btn-filter-action btn-filter-deselect">全不選</button>
-      </div>
+    <div class="scene-filter-body" id="scene-filter-body">
+      <button class="scene-batch-btn" onclick="setAllScenes(true)">全選</button>
+      <button class="scene-batch-btn" onclick="setAllScenes(false)">全不選</button>
+      <div class="scene-chip-divider"></div>
+      <!-- chips injected by JS -->
     </div>
   </div>
-
   <div class="table-wrap">
     <table>
       <thead>
         <tr class="col-group">
           <th colspan="1"></th>
           <th colspan="4">基本資訊</th>
-          <th colspan="7" style="color:rgba(255,165,0,.7)">試噴評估</th>
+          <th colspan="7" style="color:rgba(255,165,0,.7)">操作評估</th>
           <th colspan="4">滅火結果</th>
           <th colspan="1" style="color:rgba(251,191,36,.8)">綜合評定</th>
         </tr>
         <tr>
           <th>#</th>
-          <th class="accent">日期</th>
+          <th class="accent">時間</th>
           <th class="accent">學員代碼</th>
           <th>場景</th>
-          <th>次數</th>
+          <th>操作次數</th>
           <th>選擇滅火器</th>
           <th>20秒內試噴</th>
           <th>有效射程外試噴</th>
@@ -345,6 +338,14 @@ function goBack() {
   clearLog();
 }
 
+// ── 取得顯示時間：優先 now_time，fallback fake_time ───────────────────────
+function getDisplayTime(gameData, rec) {
+  const nowTime = (gameData?.now_time || '').trim();
+  if (nowTime) return nowTime;
+  // fallback: fake_time（精確到分鐘）
+  return (rec.fake_time || rec.created_at || '').slice(0, 16).replace('T', ' ');
+}
+
 async function doQuery() {
   const serial = document.getElementById('input-serial').value.trim();
   const date   = document.getElementById('input-date').value;
@@ -353,7 +354,7 @@ async function doQuery() {
   document.getElementById('error-msg').classList.remove('show');
   clearLog();
 
-  if (!serial) { showError('請輸入學員代碼'); return; }
+  if (!serial) { showError('請輸入學員代碼或 Email'); return; }
   if (!date)   { showError('請選擇日期');     return; }
 
   btn.disabled = true;
@@ -362,17 +363,22 @@ async function doQuery() {
   try {
     // Step 1: License → objectId
     log('🔍 查詢學員資料…', 'spin');
-    const licRes  = await fetch(`${BASE}/api/load_license.php?serial_code=${encodeURIComponent(serial)}`);
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(serial);
+    const licUrl  = isEmail
+      ? `${BASE}/api/load_license.php?email=${encodeURIComponent(serial)}`
+      : `${BASE}/api/load_license.php?serial_code=${encodeURIComponent(serial)}`;
+    const licRes  = await fetch(licUrl);
     const licJson = await licRes.json();
 
     if (!licJson.success || !licJson.data) {
-      showError('找不到該學員代碼，請確認後重試');
+      showError(isEmail ? '找不到該 Email，請確認後重試' : '找不到該學員代碼，請確認後重試');
       return;
     }
     const licData  = Array.isArray(licJson.data) ? licJson.data[0] : licJson.data;
+    if (!licData) { showError(isEmail ? '找不到該 Email，請確認後重試' : '找不到該學員代碼，請確認後重試'); return; }
     const objectId = licData.objectId;
-    if (!objectId) { showError('無法取得學員 ObjectId'); return; }
-    log(`✔ 找到學員，ObjectId: ${objectId}`, 'ok');
+    if (!objectId) { showError('無法取得學員資料'); return; }
+    log(`✔ 找到學員`, 'ok');
 
     // Step 2: VR Records
     log('📋 載入訓練紀錄…', 'spin');
@@ -384,7 +390,7 @@ async function doQuery() {
       return;
     }
 
-    // Step 3: Date filter
+    // Step 3: Date filter — 比對 fake_time 日期
     const filtered = recJson.data.filter(r =>
       (r.fake_time || r.created_at || '').slice(0, 10) === date
     );
@@ -396,24 +402,53 @@ async function doQuery() {
 
     // Step 4: analyze_details per record
     const results = [];
+    const feMap    = { 0:'乾粉滅火器', 1:'CO₂滅火器', 2:'水滅火器', 3:'住宅用滅火器' };
+    const sceneMap = { 0:'單層油盤', 1:'雙層油盤', 2:'障礙物油盤1', 3:'障礙物油盤2', 4:'水泥牆油盤', 5:'電器火災', 6:'電線火災', 7:'油鍋火災', 8:'瓦斯管線火災', 9:'紙箱火災', 10:'機車火災', 11:'加熱設備火災', 12:'B類油桶火災', 13:'馬達接風管火災', 14:'機台內部火災' };
+
     for (let i = 0; i < filtered.length; i++) {
       const rec = filtered[i];
       const pressRaw  = rec.press_data || '{}';
       const pressObj  = typeof pressRaw === 'string' ? JSON.parse(pressRaw) : pressRaw;
       const dataItems = pressObj.data || [];
-      if (!dataItems.length) { log(`⚠ 第 ${i+1} 筆無 press_data，跳過`, 'warn'); continue; }
+      const sceneId   = parseInt(rec.scene ?? 0);
+
+      // 無 press_data：記為失敗，時間用 fake_time
+      if (!dataItems.length) {
+        log(`⚠ 第 ${i+1} 筆無 press_data，記為失敗`, 'warn');
+        results.push({
+          date:            (rec.fake_time || rec.created_at || date).slice(0,16).replace('T',' '),
+          player_id:       rec.player_id || '',
+          scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
+          sub_index:       null,
+          count:           0,
+          select_fe:       '—',
+          trial_in_20s:    null,
+          trial_outside:   null,
+          trial_distance:  null,
+          fire_max_range:  null,
+          fire_distance:   null,
+          no_oil_splash:   null,
+          no_intermittent: null,
+          is_success:      false,
+          kill_time:       '—',
+          sp_wrong:        '—',
+          other_details:   '無操作資料',
+          rating:          '失敗',
+        });
+        continue;
+      }
+
       log(`📋 處理第 ${i + 1} / ${filtered.length} 筆紀錄（共 ${dataItems.length} 次操作）…`, 'spin');
 
-      const sceneId   = parseInt(rec.scene ?? 0);
-      const feMap    = { 0:'乾粉滅火器', 1:'CO₂滅火器', 2:'水滅火器', 3:'住宅用滅火器' };
-      const sceneMap = { 0:'單層油盤', 1:'雙層油盤', 2:'障礙物油盤1', 3:'障礙物油盤2', 4:'水泥牆油盤', 5:'電器火災', 6:'電線火災', 7:'油鍋火災', 8:'瓦斯管線火災', 9:'紙箱火災', 10:'機車火災', 11:'加熱設備火災', 12:'B類油桶火災', 13:'馬達接風管火災', 14:'機台內部火災' };
+      // 每筆 record 內的操作次數倒序排列（最後一次在最上面）
+      const reversedItems = [...dataItems].reverse();
 
-      for (let j = 0; j < dataItems.length; j++) {
-        const gameData  = dataItems[j];
+      for (let j = 0; j < reversedItems.length; j++) {
+        const gameData  = reversedItems[j];
         const feId      = parseInt(gameData.FE_id ?? 0);
         const timeLimit = parseFloat(gameData.FE_limit ?? 60);
 
-        log(`⚙ 分析第 ${i + 1} 筆 / 操作 ${j + 1} / ${dataItems.length}…`, 'spin');
+        log(`⚙ 分析第 ${i + 1} 筆 / 操作 ${dataItems.length - j} / ${dataItems.length}…`, 'spin');
 
         let d = {};
         try {
@@ -437,39 +472,39 @@ async function doQuery() {
         } else {
           ratingResult = analyzeGame(sceneId, feId, gameTimer, timeLimit, rawPressData, rawPressData.length, isSuccess, parseInt(gameData.is_outfire ?? 0), isSpWrong);
         }
-        const rating = ratingResult.rating;
 
-        const hideItems = d.hide_items;
-        const otherText = hideItems
-          ? (Array.isArray(hideItems) ? hideItems.join('、') : String(hideItems))
-          : '—';
+        // 場景 5-8：隱藏試噴相關 5 項；場景 9+：隱藏油不濺出
+        const hideFive = sceneId >= 5 && sceneId <= 8;
+        const hideOil  = sceneId >= 9;
 
         results.push({
-          date:            rec.fake_time?.slice(0,10) || rec.created_at?.slice(0,10) || date,
+          // ── 優先用 gameData.now_time，沒有才用 fake_time ──
+          date:            getDisplayTime(gameData, rec),
           player_id:       rec.player_id || '',
           scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
-          sub_index:       dataItems.length > 1 ? j + 1 : null,
+          sub_index:       dataItems.length > 1 ? (dataItems.length - j) : null,
           count:           gameData.press_count ?? 0,
           select_fe:       feMap[feId] ?? `滅火器${feId}`,
           trial_in_20s:    d.check_start_time?.pass,
-          trial_outside:   d.check_first_distance?.pass,
-          trial_distance:  d.check_first_distance?.value ?? null,
-          fire_max_range:  d.check_second_distance?.pass,
-          fire_distance:   d.check_second_distance?.value ?? null,
-          no_oil_splash:   d.check_no_outfire?.pass,
+          trial_outside:   hideFive ? 'N/A' : d.check_first_distance?.pass,
+          trial_distance:  hideFive ? 'N/A' : (d.check_first_distance?.value ?? null),
+          fire_max_range:  hideFive ? 'N/A' : d.check_second_distance?.pass,
+          fire_distance:   hideFive ? 'N/A' : (d.check_second_distance?.value ?? null),
+          no_oil_splash:   (hideFive || hideOil) ? 'N/A' : d.check_no_outfire?.pass,
           no_intermittent: d.check_press_count?.pass,
           is_success:      d.check_success?.pass ?? (isSuccess === 1),
           kill_time:       d.kill_time || (parseFloat(gameData.kill_fire_time ?? 0).toFixed(2) + 's'),
           sp_wrong:        d.special_error?.text || (isSpWrong ? '有' : '無'),
-          other_details:   otherText,
-          rating,
+          other_details:   '—',
+          rating:          ratingResult.rating,
         });
       }
     }
 
     if (!results.length) { showError('分析後無有效資料'); return; }
     log(`✔ 完成！共 ${results.length} 筆`, 'ok');
-    lastData = { serial_code: serial, date, records: results };
+    const displayName = licData.user_name?.trim() || licData.email?.trim() || serial;
+    lastData = { serial_code: serial, display_name: displayName, date, records: results };
 
     setTimeout(() => { renderTable(); showPage('result'); }, 400);
 
@@ -482,21 +517,99 @@ async function doQuery() {
   }
 }
 
+// ── Scene filter state ────────────────────────────────────────────────────────
+const SCENE_LIST = ['單層油盤','雙層油盤','障礙物油盤1','障礙物油盤2','水泥牆油盤','電器火災','電線火災','油鍋火災','瓦斯管線火災','紙箱火災','機車火災','加熱設備火災','B類油桶火災','馬達接風管火災','機台內部火災'];
+let activeScenes = new Set(SCENE_LIST); // all on by default
+
+function initSceneFilter() {
+  // Reset to all on
+  activeScenes = new Set(SCENE_LIST);
+  // Expand panel
+  document.getElementById('scene-filter').classList.remove('collapsed');
+  // Build chips (only scenes present in data)
+  const presentScenes = [...new Set(lastData.records.map(r => r.scene))];
+  const body = document.getElementById('scene-filter-body');
+  // Remove old chips (keep first 3 elements: 全選, 全不選, divider)
+  const fixed = body.querySelectorAll('.scene-batch-btn, .scene-chip-divider');
+  [...body.children].forEach(el => {
+    if (!el.classList.contains('scene-batch-btn') && !el.classList.contains('scene-chip-divider'))
+      el.remove();
+  });
+  // Add chips in SCENE_LIST order, only if present in data
+  SCENE_LIST.forEach(name => {
+    if (!presentScenes.includes(name)) return;
+    const btn = document.createElement('button');
+    btn.className = 'scene-chip on';
+    btn.textContent = name;
+    btn.dataset.scene = name;
+    btn.onclick = () => toggleScene(name, btn);
+    body.appendChild(btn);
+  });
+  updateSceneSummary();
+}
+
+function toggleSceneFilter() {
+  document.getElementById('scene-filter').classList.toggle('collapsed');
+}
+
+function toggleScene(name, btn) {
+  if (activeScenes.has(name)) {
+    activeScenes.delete(name);
+    btn.classList.remove('on');
+  } else {
+    activeScenes.add(name);
+    btn.classList.add('on');
+  }
+  updateSceneSummary();
+  applySceneFilter();
+}
+
+function setAllScenes(on) {
+  const chips = document.querySelectorAll('.scene-chip');
+  chips.forEach(chip => {
+    const name = chip.dataset.scene;
+    if (on) { activeScenes.add(name); chip.classList.add('on'); }
+    else    { activeScenes.delete(name); chip.classList.remove('on'); }
+  });
+  updateSceneSummary();
+  applySceneFilter();
+}
+
+function updateSceneSummary() {
+  const total   = document.querySelectorAll('.scene-chip').length;
+  const active  = activeScenes.size;
+  const summary = document.getElementById('scene-filter-summary');
+  summary.textContent = active === total ? '全部顯示' : `顯示 ${active} / ${total} 個場景`;
+}
+
+function applySceneFilter() {
+  const rows = document.querySelectorAll('#result-body tr');
+  let visible = 0;
+  rows.forEach(tr => {
+    const sceneTd = tr.querySelector('td:nth-child(4)');
+    if (!sceneTd) return;
+    const scene = sceneTd.textContent.trim();
+    const show  = activeScenes.has(scene);
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('meta-count').textContent = visible;
+}
+
 function renderTable() {
-  document.getElementById('meta-serial').textContent = lastData.display_name ?? lastData.serial_code;
+  document.getElementById('meta-serial').textContent = lastData.display_name;
   document.getElementById('meta-date').textContent   = lastData.date;
   document.getElementById('meta-count').textContent  = lastData.records.length;
   const tbody = document.getElementById('result-body');
   tbody.innerHTML = '';
-  initSceneFilter();
   lastData.records.forEach((r, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
-      <td>${esc(r.date)}</td>
+      <td style="font-family:'Rajdhani',sans-serif;font-size:.8rem;color:var(--text)">${esc(r.date)}</td>
       <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
-      <td>${esc(r.scene)}${r.sub_index != null ? `<span style="color:var(--muted);font-size:.72rem;margin-left:.35rem">#${r.sub_index}</span>` : ''}</td>
-      <td style="font-family:'Rajdhani',sans-serif">${r.count}</td>
+      <td>${esc(r.scene)}</td>
+      <td style="font-family:'Rajdhani',sans-serif">第 ${r.sub_index != null ? r.sub_index : 1} 次</td>
       <td>${esc(r.select_fe)}</td>
       <td>${boolCell(r.trial_in_20s)}</td>
       <td>${boolCell(r.trial_outside)}</td>
@@ -513,6 +626,8 @@ function renderTable() {
     `;
     tbody.appendChild(tr);
   });
+  // init filter after table is built
+  initSceneFilter();
 }
 
 function esc(v) {
@@ -521,12 +636,19 @@ function esc(v) {
   return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function boolCell(v) {
-  if (v === true  || v === 1) return '<span class="badge badge-pass">✔ 是</span>';
-  if (v === false || v === 0) return '<span class="badge badge-fail">✘ 否</span>';
+  if (v === 'N/A' || v === null || v === undefined) return '<span style="color:var(--muted)">—</span>';
+  if (v === true  || v === 1) return '<span class="badge badge-pass">✔ 通過</span>';
+  if (v === false || v === 0) return '<span class="badge badge-fail">✘ 不通過</span>';
   return `<span class="badge badge-neutral">${esc(v)}</span>`;
 }
+function boolStr(v) {
+  if (v === 'N/A' || v === null || v === undefined) return '—';
+  if (v === true  || v === 1) return '通過';
+  if (v === false || v === 0) return '不通過';
+  return v ?? '';
+}
 function distCell(v) {
-  if (v === null || v === undefined || v === '') return '<span style="color:var(--muted)">—</span>';
+  if (v === 'N/A' || v === null || v === undefined || v === '') return '<span style="color:var(--muted)">—</span>';
   const n = parseFloat(v);
   return isNaN(n) ? esc(v) : `<span style="font-family:'Rajdhani',sans-serif">${n.toFixed(2)} m</span>`;
 }
@@ -547,49 +669,41 @@ function ratingCell(v) {
 
 function exportCSV() {
   if (!lastData) return;
-  const headers = ['#','日期','學員代碼','場景','次數','選擇滅火器',
+  const headers = ['#','時間','學員代碼','場景','操作次數','選擇滅火器',
     '20秒內試噴','有效射程外試噴','試噴距離(m)','最大射程開始滅火','開始滅火距離(m)',
     '油不濺出(全程)','噴射無斷續','滅火成功','完成時間','特殊失誤','其他操作細項','綜合評定'];
-  const rows = lastData.records.map((r,i) => [
-    i+1, r.date, r.player_id, r.scene, r.count, r.select_fe,
-    r.trial_in_20s, r.trial_outside, r.trial_distance,
-    r.fire_max_range, r.fire_distance, r.no_oil_splash, r.no_intermittent,
-    r.is_success, r.kill_time, r.sp_wrong, r.other_details, r.rating
+  // Only export records whose scene is currently active
+  const filtered = lastData.records.filter(r => activeScenes.has(r.scene));
+  const rows = filtered.map((r, i) => [
+    i+1, r.date, r.player_id, r.scene, '第'+(r.sub_index != null ? r.sub_index : 1)+'次', r.select_fe,
+    boolStr(r.trial_in_20s), boolStr(r.trial_outside), r.trial_distance,
+    boolStr(r.fire_max_range), r.fire_distance, boolStr(r.no_oil_splash), boolStr(r.no_intermittent),
+    boolStr(r.is_success), r.kill_time, r.sp_wrong, r.other_details,
+    r.rating.replace(/🥇\s*/,'').replace(/🥈\s*/,'').replace(/🥉\s*/,'')
   ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
   const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `VR訓練_${lastData.serial_code}_${lastData.date}.csv`;
+  a.download = `VR訓練_${lastData.display_name}_${lastData.date}.csv`;
   a.click();
 }
 
-// ── Rating logic (ported from analyze_result.php) ──────────────────────────
-
+// ── Rating logic ────────────────────────────────────────────────────────────
 function analyzeGame(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, outfire, sp_wrong) {
-  if (id < 5)            return analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong);
-  else if (id <= 8)      return analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong);
-  else                   return analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong);
+  if (id < 5)       return analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong);
+  else if (id <= 8) return analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong);
+  else              return analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong);
 }
-
 function analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong) {
   let count = 0;
   if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
     if (pressData[0].Start_Time <= 20) count++;
     switch (FireExtin_id) {
-      case 0:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 5) count++;
-        break;
-      case 1:
-        if (pressData[0].Distance >= 4) count++;
-        if (pressData[1].Distance >= 2) count++;
-        break;
-      case 2: case 3:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++;
-        break;
+      case 0: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 5) count++; break;
+      case 1: if (pressData[0].Distance >= 4) count++; if (pressData[1].Distance >= 2) count++; break;
+      case 2: case 3: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++; break;
     }
-    if (!outfire)       count++;
+    if (!outfire)        count++;
     if (pressCount <= 2) count++;
     if (isSuccess == 1)  count++;
   }
@@ -597,7 +711,6 @@ function analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, 
   if (sp_wrong) count--; else count++;
   return { rating: count >= 5 ? '70分的僥倖成功' : '60分的僥倖成功', medal: 'none', score: count >= 5 ? 70 : 60 };
 }
-
 function analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong) {
   let count = 0;
   if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
@@ -609,24 +722,14 @@ function analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, 
   if (sp_wrong) count--; else count++;
   return { rating: count >= 2 ? '70分的僥倖成功' : '60分的僥倖成功', medal: 'none', score: count >= 2 ? 70 : 60 };
 }
-
 function analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong) {
   let count = 0;
   if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
     if (pressData[0].Start_Time <= 20) count++;
     switch (FireExtin_id) {
-      case 0:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 5) count++;
-        break;
-      case 1:
-        if (pressData[0].Distance >= 4) count++;
-        if (pressData[1].Distance >= 2) count++;
-        break;
-      case 2: case 3:
-        if (pressData[0].Distance >= 6) count++;
-        if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++;
-        break;
+      case 0: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 5) count++; break;
+      case 1: if (pressData[0].Distance >= 4) count++; if (pressData[1].Distance >= 2) count++; break;
+      case 2: case 3: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++; break;
     }
     if (pressCount <= 2) count++;
     if (isSuccess == 1)  count++;
@@ -636,131 +739,45 @@ function analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, 
   if (sp_wrong) count--; else count++;
   return { rating: count > 5 ? '70分的僥倖成功' : '60分的僥倖成功', medal: 'none', score: count > 5 ? 70 : 60 };
 }
-
 function getPerfectRating(id, FireExtin_id, game_timer) {
   const t = {
-    0: {0:[12,15], 1:[13,15], 2:[11,12], 3:[11,12]},
-    1: {0:[16,18], 1:[17,18], 2:[18,20], 3:[18,20]},
-    2: {0:[13,15], 1:[15,16], 2:[12,14], 3:[12,14]},
-    3: {0:[16,18], 1:[17,18], 2:[17,19], 3:[17,19]},
-    4: {0:[12,13], 1:[14,15], 2:[11,12], 3:[11,12]}
+    0:{0:[12,15],1:[13,15],2:[11,12],3:[11,12]},
+    1:{0:[16,18],1:[17,18],2:[18,20],3:[18,20]},
+    2:{0:[13,15],1:[15,16],2:[12,14],3:[12,14]},
+    3:{0:[16,18],1:[17,18],2:[17,19],3:[17,19]},
+    4:{0:[12,13],1:[14,15],2:[11,12],3:[11,12]}
   };
-  const th = (t[id] ?? {})[FireExtin_id] ?? [999, 999];
-  if (game_timer < th[0])                           return { rating: '🥇 金牌高手 成功', medal: 'gold',   score: 100 };
-  if (game_timer >= th[0] && game_timer < th[1])    return { rating: '🥈 銀牌高手 成功', medal: 'silver', score: 90  };
-  return                                                   { rating: '🥉 銅牌高手 成功', medal: 'bronze', score: 80  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { rating:'🥇 金牌高手 成功', medal:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { rating:'🥈 銀牌高手 成功', medal:'silver', score:90  };
+  return                                                { rating:'🥉 銅牌高手 成功', medal:'bronze', score:80  };
 }
-
 function getPerfectRatingScenes5to8(id, FireExtin_id, game_timer) {
   const t = {
-    5: {0:[7,8],   1:[7,8],   2:[6,7],   3:[6,7]},
-    6: {0:[8,9],   1:[8,9],   2:[6,7],   3:[6,7]},
-    7: {0:[999,999],1:[999,999],2:[999,999],3:[7,8]},
-    8: {0:[10,11], 1:[10,11], 2:[8,9],   3:[8,9]}
+    5:{0:[7,8],  1:[7,8],  2:[6,7],  3:[6,7]},
+    6:{0:[8,9],  1:[8,9],  2:[6,7],  3:[6,7]},
+    7:{0:[999,999],1:[999,999],2:[999,999],3:[7,8]},
+    8:{0:[10,11],1:[10,11],2:[8,9],  3:[8,9]}
   };
-  const th = (t[id] ?? {})[FireExtin_id] ?? [999, 999];
-  if (game_timer < th[0])                           return { rating: '🥇 金牌高手 成功', medal: 'gold',   score: 100 };
-  if (game_timer >= th[0] && game_timer < th[1])    return { rating: '🥈 銀牌高手 成功', medal: 'silver', score: 90  };
-  return                                                   { rating: '🥉 銅牌高手 成功', medal: 'bronze', score: 80  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { rating:'🥇 金牌高手 成功', medal:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { rating:'🥈 銀牌高手 成功', medal:'silver', score:90  };
+  return                                                { rating:'🥉 銅牌高手 成功', medal:'bronze', score:80  };
 }
-
 function getPerfectRatingScenes9Plus(id, FireExtin_id, game_timer) {
   const t = {
-    9:  {0:[9,10],  1:[999,999],2:[9,10],  3:[9,10]},
-    10: {0:[13,14], 1:[13,14],  2:[13,14], 3:[13,14]},
-    11: {0:[14,15], 1:[14,15],  2:[14,15], 3:[14,15]},
-    12: {0:[11,14], 1:[13,14],  2:[13,14], 3:[13,14]},
-    13: {0:[12,13], 1:[13,14],  2:[13,14], 3:[13,14]},
-    14: {0:[14,15], 1:[15,16],  2:[15,16], 3:[15,16]}
+    9: {0:[9,10], 1:[999,999],2:[9,10], 3:[9,10]},
+    10:{0:[13,14],1:[13,14], 2:[13,14],3:[13,14]},
+    11:{0:[14,15],1:[14,15], 2:[14,15],3:[14,15]},
+    12:{0:[11,14],1:[13,14], 2:[13,14],3:[13,14]},
+    13:{0:[12,13],1:[13,14], 2:[13,14],3:[13,14]},
+    14:{0:[14,15],1:[15,16], 2:[15,16],3:[15,16]}
   };
-  const th = (t[id] ?? {})[FireExtin_id] ?? [999, 999];
-  if (game_timer < th[0])                           return { rating: '🥇 金牌高手 成功', medal: 'gold',   score: 100 };
-  if (game_timer >= th[0] && game_timer < th[1])    return { rating: '🥈 銀牌高手 成功', medal: 'silver', score: 90  };
-  return                                                   { rating: '🥉 銅牌高手 成功', medal: 'bronze', score: 80  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { rating:'🥇 金牌高手 成功', medal:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { rating:'🥈 銀牌高手 成功', medal:'silver', score:90  };
+  return                                                { rating:'🥉 銅牌高手 成功', medal:'bronze', score:80  };
 }
-
-// ───────────────────────────────────────────────────────────────────────────
-
-// ── 場景篩選 ────────────────────────────────────────────────────────────────
-const SCENE_NAMES = {
-  0:'單層油盤', 1:'雙層油盤', 2:'障礙物油盤1', 3:'障礙物油盤2', 4:'水泥牆油盤',
-  5:'電器火災', 6:'電線火災', 7:'油鍋火災', 8:'瓦斯管線火災', 9:'紙箱火災',
-  10:'機車火災', 11:'加熱設備火災', 12:'B類油桶火災', 13:'馬達接風管火災', 14:'機台內部火災'
-};
-let sceneFilter = {}; // { 0: true, 1: true, ... }
-
-function initSceneFilter() {
-  // 只初始化本次查詢有資料的場景，全部預設 true
-  const present = [...new Set(lastData.records.map(r => r.scene))];
-  sceneFilter = {};
-  Object.entries(SCENE_NAMES).forEach(([id, name]) => {
-    sceneFilter[name] = true;
-  });
-
-  const container = document.getElementById('scene-toggles');
-  container.innerHTML = '';
-  Object.entries(SCENE_NAMES).forEach(([id, name]) => {
-    const item = document.createElement('label');
-    item.className = 'scene-toggle-item active';
-    item.dataset.scene = name;
-    item.innerHTML = `
-      <input type="checkbox" checked>
-      <span class="scene-toggle-dot"></span>
-      <span class="scene-toggle-label">${name}</span>
-    `;
-    item.addEventListener('click', () => toggleScene(name, item));
-    container.appendChild(item);
-  });
-
-  // 展開篩選列
-  document.getElementById('scene-filter-body').classList.remove('collapsed');
-  document.getElementById('scene-filter-arrow').classList.remove('collapsed');
-  updateFilterSummary();
-}
-
-function toggleScene(name, item) {
-  sceneFilter[name] = !sceneFilter[name];
-  item.classList.toggle('active', sceneFilter[name]);
-  updateFilterSummary();
-  applySceneFilter();
-}
-
-function setAllScenes(val) {
-  Object.keys(sceneFilter).forEach(k => sceneFilter[k] = val);
-  document.querySelectorAll('.scene-toggle-item').forEach(item => {
-    item.classList.toggle('active', val);
-  });
-  updateFilterSummary();
-  applySceneFilter();
-}
-
-function updateFilterSummary() {
-  const total  = Object.keys(sceneFilter).length;
-  const active = Object.values(sceneFilter).filter(Boolean).length;
-  const el = document.getElementById('scene-filter-summary');
-  if (active === total) el.textContent = '全部顯示';
-  else if (active === 0) el.textContent = '全部隱藏';
-  else el.textContent = `顯示 ${active} / ${total} 個場景`;
-}
-
-function applySceneFilter() {
-  document.querySelectorAll('#result-body tr').forEach(tr => {
-    // 第 4 個 td 是場景欄（index 3）
-    const sceneCell = tr.cells[3];
-    if (!sceneCell) return;
-    const sceneName = sceneCell.textContent.trim();
-    tr.style.display = (sceneFilter[sceneName] !== false) ? '' : 'none';
-  });
-}
-
-function toggleFilterBar() {
-  const body  = document.getElementById('scene-filter-body');
-  const arrow = document.getElementById('scene-filter-arrow');
-  body.classList.toggle('collapsed');
-  arrow.classList.toggle('collapsed');
-}
-// ────────────────────────────────────────────────────────────────────────────
-
 </script>
 </body>
 </html>

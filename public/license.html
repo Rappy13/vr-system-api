@@ -220,7 +220,7 @@ tr.device-panel.open .device-panel-inner{display:block}
       </div>
       <div class="field" id="count-field" style="display:none">
         <label>使用次數上限</label>
-        <input id="f-count" class="fi" type="number" min="1" placeholder="例如：100">
+        <input id="f-count" class="fi" type="number" min="0" placeholder="例如：100">
       </div>
       <div class="field">
         <label>裝置上限台數</label>
@@ -557,7 +557,7 @@ async function saveLicense() {
   const btn        = document.getElementById('btn-save');
   errEl.classList.remove('show');
   if (!user_name) { showErr(errEl, '請填寫單位名稱'); return; }
-  if (!infinity && (!countVal || parseInt(countVal) < 1)) { showErr(errEl, '請填寫使用次數上限（至少 1）'); return; }
+  if (!infinity && (countVal === '' || countVal === null || parseInt(countVal) < 0)) { showErr(errEl, '請填寫使用次數上限（0 或以上）'); return; }
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
   try {
     const payload = { user_name, infinity: infinity ? 1 : 0, active: 1 };

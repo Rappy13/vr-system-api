@@ -15,7 +15,7 @@ try {
     }
     
     // 必須提供 objectId 或 serial_code 作為更新依據
-    $objectId = $input['objectId'] ?? null;
+    $objectId   = $input['objectId']    ?? null;
     $serialCode = $input['serial_code'] ?? null;
     
     if (!$objectId && !$serialCode) {
@@ -26,10 +26,10 @@ try {
     
     // 先查詢記錄是否存在
     if ($objectId) {
-        $checkSql = "SELECT * FROM License WHERE objectId = :identifier";
+        $checkSql   = "SELECT * FROM License WHERE objectId = :identifier";
         $identifier = $objectId;
     } else {
-        $checkSql = "SELECT * FROM License WHERE serial_code = :identifier";
+        $checkSql   = "SELECT * FROM License WHERE serial_code = :identifier";
         $identifier = $serialCode;
     }
     
@@ -47,39 +47,41 @@ try {
     
     // 可更新的欄位列表
     $allowedFields = [
-        'active' => 'active',
-        'count' => 'count',
-        'email' => 'email',
-        'infinity' => 'infinity',
-        'parent' => 'parent',
-        'serial_code' => 'serial_code',
-        'user_name' => 'user_name',
-        'stage_status' => 'stage_status'
+        'active'       => 'active',
+        'count'        => 'count',
+        'email'        => 'email',
+        'infinity'     => 'infinity',
+        'parent'       => 'parent',
+        'serial_code'  => 'serial_code',
+        'user_name'    => 'user_name',
+        'stage_status' => 'stage_status',
+        'max_devices'  => 'max_devices',   // ← 裝置上限
     ];
     
     foreach ($allowedFields as $inputKey => $dbColumn) {
         if (array_key_exists($inputKey, $input)) {
             $updateFields[] = "{$dbColumn} = :{$inputKey}";
             
-            // 特殊處理布林值 — MySQL TINYINT 需要 1/0，不接受 PHP bool 或空字串
             if ($inputKey === 'active' || $inputKey === 'infinity') {
                 $val = $input[$inputKey];
                 $updateParams[":{$inputKey}"] = ($val === true || $val === 1 || $val === '1' || $val === 'true') ? 1 : 0;
             } elseif ($inputKey === 'count') {
                 $val = $input[$inputKey];
                 $updateParams[":{$inputKey}"] = ($val === null || $val === '') ? 0 : (int)$val;
+            } elseif ($inputKey === 'max_devices') {
+                $val = $input[$inputKey];
+                // null 或空字串 → NULL（無限裝置），否則轉整數
+                $updateParams[":{$inputKey}"] = ($val === null || $val === '') ? null : (int)$val;
             } else {
                 $updateParams[":{$inputKey}"] = $input[$inputKey] ?? '';
             }
         }
     }
     
-    // 如果沒有要更新的欄位
     if (empty($updateFields)) {
         sendResponse(false, 'No fields to update', null, 400);
     }
     
-    // 構建 SQL 更新語句
     if ($objectId) {
         $sql = "UPDATE License SET " . implode(', ', $updateFields) . " WHERE objectId = :identifier";
     } else {
@@ -92,8 +94,7 @@ try {
     $stmt->execute($updateParams);
     
     if ($stmt->rowCount() > 0) {
-        // 獲取更新後的完整記錄
-        $fetchSql = $objectId 
+        $fetchSql = $objectId
             ? "SELECT * FROM License WHERE objectId = :identifier"
             : "SELECT * FROM License WHERE serial_code = :identifier";
         
@@ -101,14 +102,15 @@ try {
         $fetchStmt->execute([':identifier' => $identifier]);
         $updatedRecord = $fetchStmt->fetch();
         
-        // 轉換布林值
-        $updatedRecord['active'] = (bool)$updatedRecord['active'];
-        $updatedRecord['infinity'] = (bool)$updatedRecord['infinity'];
-        $updatedRecord['count'] = (int)$updatedRecord['count'];
+        $updatedRecord['active']      = (bool)$updatedRecord['active'];
+        $updatedRecord['infinity']    = (bool)$updatedRecord['infinity'];
+        $updatedRecord['count']       = (int)$updatedRecord['count'];
+        $updatedRecord['max_devices'] = $updatedRecord['max_devices'] !== null
+                                        ? (int)$updatedRecord['max_devices']
+                                        : null;
         
         sendResponse(true, 'License updated successfully', $updatedRecord);
     } else {
-        // 沒有變更（可能是提供的值與現有值相同）
         sendResponse(true, 'No changes made (values are the same)', $existingRecord);
     }
     

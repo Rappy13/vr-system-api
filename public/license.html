@@ -315,10 +315,11 @@ async function doLogin() {
       body: JSON.stringify({ username, password })
     }).then(r => r.json());
     if (res.success) {
-      authToken = res.token || '';
+      authToken = res.data?.token || res.token || '';
+      const uname = res.data?.username || res.username || '';
       localStorage.setItem('vr_token', authToken);
-      localStorage.setItem('vr_user', res.username);
-      currentUser = res.username;
+      localStorage.setItem('vr_user', uname);
+      currentUser = uname;
       document.getElementById('topbar-username').textContent = currentUser;
       showPage('dash'); loadLicenses();
     } else { showErr(errEl, res.message || '登入失敗'); }

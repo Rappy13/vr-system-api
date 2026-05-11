@@ -1,10 +1,604 @@
+
+Claude finished the response
+You said: 我有一個unity app在實機上是使用序號去做驗證，目前序號本身沒有限制在其他新裝置上使用，為避免使用者拿序號去散播給其他人使用，我想要增加限制機能
+我有一個unity app在實機上是使用序號去做驗證，目前序號本身沒有限制在其他新裝置上使用，為避免使用者拿序號去散播給其他人使用，我想要增加限制機能
+
+晚上11:15
+Claude responded: 了解你的需求後我來給你最合適的方案！請先回答以上問題。
+了解你的需求後我來給你最合適的方案！請先回答以上問題。
+
+You said: Q: 序號驗證目前是如何運作的？
+Q: 序號驗證目前是如何運作的？
+A: 連接後端伺服器驗證
+
+Q: 你想要的限制方式是？
+A: 限制裝置數量（如最多3台）
+
+Q: 你有後端伺服器或雲端服務可以使用嗎？
+A: 有（自己的伺服器/API）
+
+晚上11:15
+Claude responded: 很好！你已經有後端伺服器，這讓實作變得很完整。以下是整體架構與實作方案：
+很好！你已經有後端伺服器，這讓實作變得很完整。以下是整體架構與實作方案：
+
+整體架構設計
+
+
+實作方案
+1. Unity 端：取得 Device ID
+csharp
+// LicenseManager.cs
+using UnityEngine;
+using System.Text;
+using System.Security.Cryptography;
+
+public static class DeviceIdentifier
+{
+    public static string GetDeviceId()
+    {
+        // 基礎 ID（各平台）
+        string rawId = SystemInfo.deviceUniqueIdentifier;
+        
+        // 額外加鹽避免被偽造（可加入你的 App 特定值）
+        string salted = rawId + "YOUR_APP_SALT_2024";
+        
+        // Hash 後送出，避免洩漏原始 ID
+        using var sha = SHA256.Create();
+        byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(salted));
+        return System.BitConverter.ToString(bytes).Replace("-", "").ToLower();
+    }
+}
+2. Unity 端：驗證請求
+csharp
+// LicenseValidator.cs
+using UnityEngine;
+using UnityEngine.Networking;
+using System.Collections;
+using System.Text;
+
+[System.Serializable]
+public class ValidateRequest
+{
+    public string serial_key;
+    public string device_id;
+    public string platform; // "Windows", "Android", "iOS" 等
+}
+
+[System.Serializable]
+public class ValidateResponse
+{
+    public bool success;
+    public string message;
+    public string token; // 伺服器回傳的臨時 token，快取用
+}
+
+public class LicenseValidator : MonoBehaviour
+{
+    private const string API_URL = "https://your-server.com/api/license/validate";
+    private const string TOKEN_KEY = "auth_token";
+    private const string TOKEN_EXPIRY_KEY = "auth_token_expiry";
+    private const int TOKEN_VALID_HOURS = 24; // token 快取 24 小時
+
+    public IEnumerator ValidateLicense(string serialKey, System.Action<bool, string> callback)
+    {
+        // 先檢查本地快取 token（減少網路請求）
+        if (HasValidCachedToken())
+        {
+            callback(true, "已驗證（快取）");
+            yield break;
+        }
+
+        var body = new ValidateRequest
+        {
+            serial_key = serialKey,
+            device_id = DeviceIdentifier.GetDeviceId(),
+            platform = Application.platform.ToString()
+        };
+
+        string json = JsonUtility.ToJson(body);
+        var request = new UnityWebRequest(API_URL, "POST");
+        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            var resp = JsonUtility.FromJson<ValidateResponse>(request.downloadHandler.text);
+            if (resp.success)
+            {
+                // 快取 token
+                PlayerPrefs.SetString(TOKEN_KEY, resp.token);
+                PlayerPrefs.SetString(TOKEN_EXPIRY_KEY,
+                    System.DateTime.UtcNow.AddHours(TOKEN_VALID_HOURS).ToBinary().ToString());
+                PlayerPrefs.Save();
+            }
+            callback(resp.success, resp.message);
+        }
+        else
+        {
+            // 網路失敗時，允許使用快取（視你的需求調整）
+            callback(false, "無法連線至伺服器");
+        }
+    }
+
+    private bool HasValidCachedToken()
+    {
+        string token = PlayerPrefs.GetString(TOKEN_KEY, "");
+        string expiryStr = PlayerPrefs.GetString(TOKEN_EXPIRY_KEY, "");
+        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(expiryStr))
+            return false;
+
+        var expiry = System.DateTime.FromBinary(long.Parse(expiryStr));
+        return System.DateTime.UtcNow < expiry;
+    }
+}
+3. 後端：資料庫結構
+sql
+-- 序號主表
+CREATE TABLE licenses (
+    id          SERIAL PRIMARY KEY,
+    serial_key  VARCHAR(64) UNIQUE NOT NULL,
+    max_devices INT NOT NULL DEFAULT 3,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- 綁定的裝置列表
+CREATE TABLE license_devices (
+    id          SERIAL PRIMARY KEY,
+    license_id  INT REFERENCES licenses(id) ON DELETE CASCADE,
+    device_id   VARCHAR(128) NOT NULL,
+    platform    VARCHAR(32),
+    first_seen  TIMESTAMP DEFAULT NOW(),
+    last_seen   TIMESTAMP DEFAULT NOW(),
+    UNIQUE(license_id, device_id)
+);
+4. 後端：驗證 API（Node.js / Express 範例）
+javascript
+// POST /api/license/validate
+app.post('/api/license/validate', async (req, res) => {
+    const { serial_key, device_id, platform } = req.body;
+
+    // 查詢序號
+    const license = await db.query(
+        'SELECT * FROM licenses WHERE serial_key = $1 AND is_active = TRUE',
+        [serial_key]
+    );
+    if (!license.rows.length)
+        return res.json({ success: false, message: '序號無效或已停用' });
+
+    const lic = license.rows[0];
+
+    // 查詢此裝置是否已綁定
+    const existing = await db.query(
+        'SELECT * FROM license_devices WHERE license_id = $1 AND device_id = $2',
+        [lic.id, device_id]
+    );
+
+    if (existing.rows.length) {
+        // 已綁定過，更新 last_seen 並允許
+        await db.query(
+            'UPDATE license_devices SET last_seen = NOW() WHERE license_id = $1 AND device_id = $2',
+            [lic.id, device_id]
+        );
+        return res.json({ success: true, token: generateToken(lic.id, device_id) });
+    }
+
+    // 新裝置：檢查是否超過上限
+    const count = await db.query(
+        'SELECT COUNT(*) FROM license_devices WHERE license_id = $1',
+        [lic.id]
+    );
+    if (parseInt(count.rows[0].count) >= lic.max_devices)
+        return res.json({ success: false, message: `此序號已達裝置上限（${lic.max_devices} 台）` });
+
+    // 新增綁定
+    await db.query(
+        'INSERT INTO license_devices (license_id, device_id, platform) VALUES ($1, $2, $3)',
+        [lic.id, device_id, platform]
+    );
+
+    return res.json({ success: true, token: generateToken(lic.id, device_id) });
+});
+注意事項與建議
+安全性
+
+Device ID 在 Unity 中使用 SHA256 hash 後再送出，避免原始硬體資訊外洩
+API 要加上 rate limiting，防止暴力猜測序號
+建議加上 HTTPS + request signature（HMAC）驗證請求來源
+使用者體驗
+
+提供「解除綁定」機制（例如允許每 30 天自助解除一次），避免使用者換機後無法使用
+token 快取讓正常使用者不用每次啟動都等網路回應
+SystemInfo.deviceUniqueIdentifier 的限制
+
+Android：部分廠商或 Android 10+ 後可能回傳相同值
+iOS：每次重裝 App 可能改變
+可考慮搭配其他資訊（MAC hash、機型+OS版本組合）做二次確認
+需要哪個部分更詳細展開（例如管理後台、解除綁定 API、iOS/Android 特殊處理）？
+
+You said: 我是透過onrender去連接api的php，是不是可以加在裡面?
+
+load_license.php
+120 lines
+
+php
+
+我是透過onrender去連接api的php，是不是可以加在裡面?
+另外是不是要再mysql後台去新增對應欄位
+
+晚上11:26
+Claude responded: 看了你的 load_license.
+看了你的 load_license.php，了解你的結構了。不過這支是讀取用的，裝置綁定驗證應該另外建一支 API，或是整合到現有的驗證流程裡。
+
+讓我先確認你現有的結構：
+
+你的 License 表目前應該有這些欄位：
+
+objectId, serial_code, user_name, email, active, infinity, count
+需要做的兩件事
+① MySQL 新增欄位
+sql
+-- 新增裝置綁定表（建議獨立一張表，比較乾淨）
+CREATE TABLE LicenseDevices (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    serial_code VARCHAR(128) NOT NULL,
+    device_id   VARCHAR(256) NOT NULL,
+    platform    VARCHAR(32),
+    first_seen  DATETIME DEFAULT NOW(),
+    last_seen   DATETIME DEFAULT NOW(),
+    UNIQUE KEY unique_binding (serial_code, device_id)
+);
+建議用獨立表而不是在 License 加欄位，原因是一個序號對應多台裝置，用關聯表更乾淨，之後查詢也方便。
+
+如果你偏好不新增表、直接在 License 加欄位，也可以用 JSON 欄位存：
+
+sql
+-- 簡單版：直接在 License 表加一個欄位
+ALTER TABLE License ADD COLUMN bound_devices JSON DEFAULT NULL;
+-- 例如存: ["devicehash1", "devicehash2"]
+② 新增 validate_license.php
+放在跟 load_license.php 同層目錄即可：
+
+php
+<?php
+// validate_license.php - 驗證序號並處理裝置綁定
+require_once 'config.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    sendResponse(false, 'Method not allowed', null, 405);
+}
+
+try {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $serial_code = $input['serial_code'] ?? null;
+    $device_id   = $input['device_id']   ?? null;
+    $platform    = $input['platform']    ?? 'Unknown';
+    $max_devices = 3; // 最多幾台，可之後改成資料庫欄位
+
+    if (!$serial_code || !$device_id) {
+        sendResponse(false, 'Missing serial_code or device_id', null, 400);
+    }
+
+    $conn = getDBConnection();
+
+    // 1. 查詢序號是否存在且有效
+    $stmt = $conn->prepare("SELECT * FROM License WHERE serial_code = :serial_code");
+    $stmt->execute([':serial_code' => $serial_code]);
+    $license = $stmt->fetch();
+
+    if (!$license) {
+        sendResponse(false, '序號不存在', null, 404);
+    }
+    if (!(bool)$license['active']) {
+        sendResponse(false, '序號已停用', null, 403);
+    }
+
+    // 2. 查詢此裝置是否已綁定
+    $stmt = $conn->prepare(
+        "SELECT * FROM LicenseDevices 
+         WHERE serial_code = :serial_code AND device_id = :device_id"
+    );
+    $stmt->execute([
+        ':serial_code' => $serial_code,
+        ':device_id'   => $device_id,
+    ]);
+    $existing = $stmt->fetch();
+
+    if ($existing) {
+        // 已綁定過 → 更新 last_seen，直接通過
+        $conn->prepare(
+            "UPDATE LicenseDevices SET last_seen = NOW() 
+             WHERE serial_code = :serial_code AND device_id = :device_id"
+        )->execute([
+            ':serial_code' => $serial_code,
+            ':device_id'   => $device_id,
+        ]);
+        sendResponse(true, '驗證成功', ['device_status' => 'existing']);
+    }
+
+    // 3. 新裝置 → 檢查是否超過上限
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) as cnt FROM LicenseDevices WHERE serial_code = :serial_code"
+    );
+    $stmt->execute([':serial_code' => $serial_code]);
+    $count = (int)$stmt->fetch()['cnt'];
+
+    // infinity = true 的序號不限制裝置數
+    if (!(bool)$license['infinity'] && $count >= $max_devices) {
+        sendResponse(false, "此序號已達裝置上限（{$max_devices} 台）", null, 403);
+    }
+
+    // 4. 寫入新綁定
+    $conn->prepare(
+        "INSERT INTO LicenseDevices (serial_code, device_id, platform) 
+         VALUES (:serial_code, :device_id, :platform)"
+    )->execute([
+        ':serial_code' => $serial_code,
+        ':device_id'   => $device_id,
+        ':platform'    => $platform,
+    ]);
+
+    sendResponse(true, '驗證成功', ['device_status' => 'new_binding']);
+
+} catch (PDOException $e) {
+    sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
+} catch (Exception $e) {
+    sendResponse(false, 'Error: ' . $e->getMessage(), null, 500);
+}
+?>
+注意：你的 infinity 欄位我直接拿來用了——infinity = true 的序號不受裝置數量限制，符合你原本的邏輯。
+
+③ Unity 呼叫這支新 API
+把之前的驗證請求改成打 validate_license.php：
+
+csharp
+// 只需改 URL，其他邏輯不變
+private const string API_URL = "https://your-onrender-url.onrender.com/validate_license.php";
+
+// POST body:
+// {
+//   "serial_code": "用戶輸入的序號",
+//   "device_id": "DeviceIdentifier.GetDeviceId()",
+//   "platform": "Windows"
+// }
+管理用：查看某序號綁定了哪些裝置
+你可以直接在 load_license.php 加一個查詢，或另外建一支：
+
+php
+// 在 load_license.php 的查詢區塊中加入
+} elseif ($serial_code && isset($_GET['devices'])) {
+    $stmt = $conn->prepare(
+        "SELECT device_id, platform, first_seen, last_seen 
+         FROM LicenseDevices WHERE serial_code = :serial_code"
+    );
+    $stmt->execute([':serial_code' => $serial_code]);
+    $devices = $stmt->fetchAll();
+    sendResponse(true, 'Found ' . count($devices) . ' devices', $devices);
+}
+呼叫方式：GET /load_license.php?serial_code=XXXX&devices=1
+
+總結步驟：
+
+在 MySQL 執行 CREATE TABLE LicenseDevices ...
+把 validate_license.php 上傳到 Render 的同目錄
+Unity 改呼叫新的 endpoint
+有沒有現有的 config.php 內容可以分享？確認 sendResponse() 的格式，確保回傳的 JSON 結構 Unity 那邊能正確解析。
+
+You said: infinity是指該序號是否有無限次的內部機能使用次數，不是給裝置驗證用
+infinity是指該序號是否有無限次的內部機能使用次數，不是給裝置驗證用
+
+晚上11:34
+Claude responded: 了解！infinity 跟裝置綁定是完全不同的概念，我不應該混用它。
+了解！infinity 跟裝置綁定是完全不同的概念，我不應該混用它。
+
+修正 validate_license.php 中那段邏輯：
+
+把這段刪掉：
+
+php
+// infinity = true 的序號不限制裝置數
+if (!(bool)$license['infinity'] && $count >= $max_devices) {
+改成：
+
+php
+// 單純檢查裝置數量，與 infinity 無關
+if ($count >= $max_devices) {
+其他部分都不需要動。infinity 欄位只在你原本的業務邏輯裡使用，驗證裝置數量就是純粹看 LicenseDevices 表的筆數是否超過上限。
+
+順便問一下，count 欄位目前是記錄什麼用途的？這樣我能確認後續有沒有其他地方需要注意，不會再搞混了。
+
+You said: count是上面的inifinity若非開啟時該序號使用者的內部機能使用次數。
+count是上面的inifinity若非開啟時該序號使用者的內部機能使用次數。
+但我有會想給部分的序號無限次
+
+晚上11:37
+Claude responded: 清楚了！所以你的業務邏輯是：
+清楚了！所以你的業務邏輯是：
+
+infinity = true → 內部機能無限次使用
+infinity = false → 內部機能用 count 次數扣點
+裝置綁定限制是完全獨立的功能，跟這兩個欄位都無關
+所以 validate_license.php 裝置驗證的部分完全不需要碰 infinity 和 count，就是單純：
+
+php
+// 新裝置 → 檢查是否超過裝置上限
+if ($count >= $max_devices) {
+    sendResponse(false, "此序號已達裝置上限（{$max_devices} 台）", null, 403);
+}
+這樣邏輯是正確的。
+
+不過你提到「部分序號想給無限裝置數」，這個建議在 License 表加一個欄位來控制：
+
+sql
+ALTER TABLE License ADD COLUMN max_devices INT DEFAULT 3;
+-- NULL 代表無限制，數字代表上限台數
+這樣 validate_license.php 改成：
+
+php
+$max_devices = $license['max_devices']; // 從資料庫讀
+
+// NULL 表示無限裝置
+if ($max_devices !== null && $count >= $max_devices) {
+    sendResponse(false, "此序號已達裝置上限（{$max_devices} 台）", null, 403);
+}
+管理上就很彈性——有些序號填 3，要給無限的填 NULL，不需要動程式碼。這樣設計合理嗎？
+
+You said: php幫我生成出一整組出來
+php幫我生成出一整組出來
+
+晚上11:41
+Claude responded: 先看一下 config.
+先看一下 config.php 的結構確認 sendResponse 和 DB 連線格式：
+
+
+查看上傳的 load_license.php 確認結構
+查看上傳的 load_license.php 確認結構
+好，結構清楚了。幫你生成三個檔案：
+
+1. MySQL 建表 SQL 2. validate_license.php — Unity 呼叫的驗證 API 3. manage_devices.php — 查詢/解除裝置綁定的管理 API
+
+
+Created 3 files, viewed a file, read a file
+Created 3 files, viewed a file, read a file
+
+讀取 skills 目錄
+
+MySQL 建表 SQL
+create_license_devices.sql
+
+validate_license.php — Unity 呼叫的裝置驗證 API
+validate_license.php
+
+manage_devices.php — 裝置綁定管理 API（查詢/解除）
+manage_devices.php
+
+Presented 3 files
+Done
+三個檔案說明：
+
+① create_license_devices.sql — 先在 MySQL 後台執行這個
+
+License 表加 max_devices 欄位（NULL = 無限裝置，數字 = 幾台）
+建立 LicenseDevices 關聯表
+② validate_license.php — Unity 呼叫的主要驗證端點
+
+POST { serial_code, device_id, platform }
+自動判斷是已綁定裝置、新裝置、還是超過上限
+③ manage_devices.php — 管理用，有 API Key 保護
+
+GET ?serial_code=XXX → 查詢該序號綁了哪些裝置
+POST { action: "delete", id: 5 } → 解除單台
+POST { action: "delete_all", serial_code: "XXX" } → 全部解除
+部署步驟：
+
+MySQL 後台執行 .sql 檔
+三支 .php 上傳到 Render 同目錄
+在 config.php 加一行：
+php
+   define('ADMIN_API_KEY', '你自己設的密鑰');
+Unity 改呼叫 validate_license.php
+
+Create license devices
+Code · SQL 
+
+Validate license
+Code · PHP 
+
+Manage devices
+Code · PHP 
+You said: 我有一個需要登入的lisence管理系統的網站(帳號:admin 密碼:admin1234)，能否幫我加入管理license下的機器的機能，在登入後管理是否就不需要在config.
+
+<!DOCTYPE html> <html lang="zh-TW"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>FireAway XR License 管理系統</title> <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away
+
+pasted
+
+我有一個需要登入的lisence管理系統的網站(帳號:admin 密碼:admin1234)，能否幫我加入管理license下的機器的機能，在登入後管理是否就不需要在config.php加那個ADMIN_API_KEY
+
+晚上11:49
+Claude responded: 看了你的管理網站架構，了解了！因為已經有登入系統，所以：
+看了你的管理網站架構，了解了！因為已經有登入系統，所以：
+
+manage_devices.php 改用 session token 驗證，不需要 ADMIN_API_KEY
+網站新增「裝置管理」功能：在每個 License 列可以點開查看/解除綁定的裝置
+讓我先確認你的 login API 回傳的 token 格式，再生成完整版本：
+
+請回答這兩個問題，我就能生成完整的整合版！
+
+You said: Q: login.
+Q: login.php 回傳的 token 是怎麼驗證的？
+A: 不確定，請直接用 Bearer token 方式
+
+Q: 裝置管理的 UI 想要怎麼呈現？
+A: 點擊 License 列展開裝置列表（inline 展開）
+
+晚上11:49
+Claude responded: 好，直接生成兩個檔案：更新版的 manage_devices.
+好，直接生成兩個檔案：更新版的 manage_devices.php + 整合裝置管理的完整網頁。
+
+
+Created 2 files, ran a command
+Created 2 files, ran a command
+
+manage_devices.php — 用 Bearer token 驗證的裝置管理 API
+manage_devices.php
+
+刪除舊檔
+
+Script
+
+manage_devices.php
+manage_devices.php
+Done
+現在生成整合裝置管理的完整網頁，這是最大的一個：
+
+
+Created a file, read a file
+Created a file, read a file
+兩個檔案說明：
+
+更新了什麼：
+
+index.html 新增功能：
+
+表格多了「裝置」欄，顯示 已綁定 / 上限 台數
+每列可點擊展開裝置清單，顯示裝置 Hash、平台、首次／最後驗證時間
+展開後有使用率進度條（黃色 ≥70%、紅色滿了）
+每台裝置右邊有「解除」按鈕，也有「全部解除」
+新增/編輯 License 的 Modal 多了「裝置上限台數」欄位（留空 = 無限）
+manage_devices.php：
+
+用 Bearer token 驗證，登入後自動帶入，不需要額外的 API Key
+部署步驟：
+
+MySQL 執行之前給你的 create_license_devices.sql（還沒執行的話）
+上傳 manage_devices.php 到 Render 的 /api/ 目錄
+用新的 index.html 替換原有的管理頁面
+manage_devices.php 裡的 validateToken() 函式，因為不確定你的 admin_users 表結構，目前開發期間設為直接通過。確認 token 存在哪張表後，把那段改成正確的查詢就好。
+
+
+Index
+Code · HTML 
+
+Manage devices
+Code · PHP 
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+Index · HTML
+Copy
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FireAway XR License 管理系統</title>
-  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -13,6 +607,7 @@
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8b89a' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;z-index:0}
 .page{display:none;min-height:100vh}.page.active{display:flex}
+/* ── Login ── */
 #page-login{align-items:center;justify-content:center;padding:2rem;position:relative;z-index:1}
 .login-wrap{display:grid;grid-template-columns:1fr 1fr;max-width:840px;width:100%;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;animation:slideUp .5s cubic-bezier(.22,1,.36,1) both}
 @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
@@ -34,6 +629,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .btn-primary:hover{background:#2d2825}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .alert-err{background:rgba(200,75,49,.08);border:1px solid rgba(200,75,49,.2);color:var(--danger);border-radius:6px;padding:.6rem .9rem;font-size:.82rem;margin-top:.8rem;display:none}
 .alert-err.show{display:block}
+/* ── Dashboard ── */
 #page-dash{flex-direction:column;position:relative;z-index:1}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.85rem 2rem;display:flex;align-items:center;gap:1rem}
 .topbar-brand{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:.6rem}
@@ -54,14 +650,39 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .search-input:focus{border-color:var(--accent)}
 .btn-add{padding:.6rem 1.3rem;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity .2s;margin-left:auto}
 .btn-add:hover{opacity:.88}
+/* ── Table ── */
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
 table{width:100%;border-collapse:collapse;font-size:.84rem}
 thead{background:var(--panel);position:sticky;top:0;z-index:5}
 th{padding:.75rem 1rem;text-align:left;font-size:.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap}
-tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
-tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:rgba(200,75,49,.03)}
+tbody tr.lic-row{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+tbody tr.lic-row:hover{background:rgba(200,75,49,.03)}
+tbody tr.lic-row.expanded{background:rgba(200,75,49,.04);border-bottom:none}
 td{padding:.7rem 1rem;vertical-align:middle}
+.expand-arrow{display:inline-block;transition:transform .2s;font-size:.7rem;margin-right:.4rem;color:var(--muted)}
+.expanded .expand-arrow{transform:rotate(90deg)}
+/* ── Device panel (inline expand) ── */
+tr.device-panel td{padding:0;border-bottom:1px solid var(--border)}
+.device-panel-inner{padding:0 1rem 1rem 2.5rem;background:rgba(200,75,49,.025);display:none}
+tr.device-panel.open .device-panel-inner{display:block}
+.device-panel-header{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0 .5rem}
+.device-panel-title{font-size:.75rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.btn-danger-sm{padding:.25rem .7rem;background:transparent;border:1px solid rgba(200,75,49,.35);color:var(--danger);border-radius:5px;cursor:pointer;font-size:.72rem;font-family:inherit;transition:all .15s}
+.btn-danger-sm:hover{background:var(--danger);color:#fff}
+.device-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.25rem}
+.device-table th{padding:.4rem .75rem;text-align:left;font-size:.65rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+.device-table td{padding:.5rem .75rem;border-bottom:1px solid rgba(226,221,214,.5);vertical-align:middle}
+.device-table tr:last-child td{border-bottom:none}
+.device-table tr:hover td{background:rgba(200,75,49,.04)}
+.device-id-cell{font-family:monospace;font-size:.75rem;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.platform-badge{display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:.68rem;font-weight:600;background:rgba(45,90,61,.08);color:var(--accent2)}
+.no-devices{color:var(--muted);font-size:.82rem;padding:.5rem 0}
+.device-loading{color:var(--muted);font-size:.82rem;padding:.5rem 0;display:flex;align-items:center;gap:.5rem}
+.device-limit-bar{display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--muted);margin-top:.6rem}
+.bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;max-width:120px}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent2);transition:width .4s}
+.bar-fill.warn{background:var(--warn)}.bar-fill.full{background:var(--danger)}
+/* ── Badges / Buttons ── */
 .badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.72rem;font-weight:600}
 .badge-active{background:rgba(45,90,61,.1);color:var(--accent2)}
 .badge-off{background:rgba(200,75,49,.1);color:var(--accent)}
@@ -70,7 +691,9 @@ td{padding:.7rem 1rem;vertical-align:middle}
 .act-btn:hover{border-color:var(--accent);color:var(--accent)}
 .act-btn.d:hover{border-color:var(--danger);color:var(--danger)}
 .empty-row td{text-align:center;padding:3rem;color:var(--muted)}
+/* ── Spinner / Loading / Toast / Modal ── */
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
+.spinner-sm{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-overlay{position:fixed;inset:0;background:rgba(245,243,238,.8);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
 .loading-overlay.show{display:flex}
@@ -109,7 +732,7 @@ td{padding:.7rem 1rem;vertical-align:middle}
 </style>
 </head>
 <body>
-
+ 
 <div class="loading-overlay" id="loading">
   <div class="loading-box">
     <div class="loading-spinner"></div>
@@ -117,14 +740,14 @@ td{padding:.7rem 1rem;vertical-align:middle}
   </div>
 </div>
 <div class="toast" id="toast"></div>
-
+ 
 <!-- PAGE 1 LOGIN -->
 <div id="page-login" class="page active">
   <div class="login-wrap">
     <div class="login-brand">
       <div class="brand-badge">FireAway XR</div>
       <div class="brand-title">License<br><em>管理</em><br>後台</div>
-      <div class="brand-sub">管理所有單位授權碼、啟用／停用狀態，以及其他設定。</div>
+      <div class="brand-sub">管理所有單位授權碼、啟用／停用狀態，以及裝置綁定管理。</div>
     </div>
     <div class="login-form-wrap">
       <div class="form-title">管理員登入</div>
@@ -136,7 +759,7 @@ td{padding:.7rem 1rem;vertical-align:middle}
     </div>
   </div>
 </div>
-
+ 
 <!-- PAGE 2 DASHBOARD -->
 <div id="page-dash" class="page">
   <div class="topbar">
@@ -160,15 +783,16 @@ td{padding:.7rem 1rem;vertical-align:middle}
     <div class="table-wrap">
       <table>
         <thead><tr>
+          <th></th>
           <th>授權碼</th><th>單位名稱</th><th>Email</th>
-          <th>無限次數</th><th>剩餘次數</th><th>狀態</th><th>建立日期</th><th>操作</th>
+          <th>無限次數</th><th>剩餘次數</th><th>裝置</th><th>狀態</th><th>建立日期</th><th>操作</th>
         </tr></thead>
-        <tbody id="license-tbody"><tr class="empty-row"><td colspan="8">載入中…</td></tr></tbody>
+        <tbody id="license-tbody"><tr class="empty-row"><td colspan="10">載入中…</td></tr></tbody>
       </table>
     </div>
   </div>
 </div>
-
+ 
 <!-- MODAL: 新增/編輯 License -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
@@ -191,6 +815,10 @@ td{padding:.7rem 1rem;vertical-align:middle}
         <label>使用次數上限</label>
         <input id="f-count" class="fi" type="number" min="1" placeholder="例如：100">
       </div>
+      <div class="field">
+        <label>裝置上限台數</label>
+        <input id="f-maxdevices" class="fi" type="number" min="1" placeholder="留空 = 無限台數">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">取消</button>
@@ -198,7 +826,7 @@ td{padding:.7rem 1rem;vertical-align:middle}
     </div>
   </div>
 </div>
-
+ 
 <!-- MODAL: 帳號設定 -->
 <div class="modal-overlay" id="pwd-modal-overlay">
   <div class="modal">
@@ -221,192 +849,348 @@ td{padding:.7rem 1rem;vertical-align:middle}
     </div>
   </div>
 </div>
-
+ 
 <script>
 const BASE = 'https://vr-system-api.onrender.com';
-let allLicenses = [], currentUser = '';
-
-// ── Init: use localStorage so refresh keeps login ─────────────────────────────
+let allLicenses = [], currentUser = '', authToken = '';
+// 記錄已展開的面板及其裝置資料 cache
+const expandedPanels = new Set();
+const deviceCache = {};
+ 
+// ── Init ──────────────────────────────────────────────────────
 window.addEventListener('load', () => {
-  const token = localStorage.getItem('vr_token');
-  currentUser = localStorage.getItem('vr_user') || '';
-  if (token) {
+  authToken   = localStorage.getItem('vr_token') || '';
+  currentUser = localStorage.getItem('vr_user')  || '';
+  if (authToken) {
     document.getElementById('topbar-username').textContent = currentUser;
-    showPage('dash'); loadLicenses();
+    showPage('dash');
+    loadLicenses();
   }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('page-login').classList.contains('active')) doLogin();
 });
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function showPage(n) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-'+n).classList.add('active'); }
-function showLoading(t='載入中…') { document.getElementById('loading-text').textContent=t; document.getElementById('loading').classList.add('show'); }
+ 
+// ── Helpers ───────────────────────────────────────────────────
+function showPage(n) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById('page-' + n).classList.add('active'); }
+function showLoading(t = '載入中…') { document.getElementById('loading-text').textContent = t; document.getElementById('loading').classList.add('show'); }
 function hideLoading() { document.getElementById('loading').classList.remove('show'); }
-function toast(msg,type='') { const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); setTimeout(()=>el.classList.remove('show'),2800); }
-function showErr(el,msg) { el.textContent='⚠ '+msg; el.classList.add('show'); }
-function showOk(el,msg)  { el.textContent='✔ '+msg; el.classList.add('show'); }
-function hideMsg(el)     { el.classList.remove('show'); }
-function esc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-async function apiGet(url) { const r=await fetch(url); return r.json(); }
-async function apiPost(url,body) { const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json(); }
-
-// ── Login / Logout ────────────────────────────────────────────────────────────
+function toast(msg, type = '') { const el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => el.classList.remove('show'), 2800); }
+function showErr(el, msg) { el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function showOk(el, msg) { el.textContent = '✔ ' + msg; el.classList.add('show'); }
+function hideMsg(el) { el.classList.remove('show'); }
+function esc(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+ 
+async function apiGet(url) {
+  const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken } });
+  return r.json();
+}
+async function apiPost(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+ 
+// ── Login / Logout ────────────────────────────────────────────
 async function doLogin() {
-  const username=document.getElementById('inp-user').value.trim();
-  const password=document.getElementById('inp-pass').value;
-  const errEl=document.getElementById('login-error');
-  const btn=document.getElementById('btn-login');
+  const username = document.getElementById('inp-user').value.trim();
+  const password = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('btn-login');
   errEl.classList.remove('show');
-  if (!username||!password) { showErr(errEl,'請填寫帳號與密碼'); return; }
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>登入中…';
+  if (!username || !password) { showErr(errEl, '請填寫帳號與密碼'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>登入中…';
   try {
-    const res = await apiPost(`${BASE}/api/login.php`,{username,password});
+    const res = await fetch(`${BASE}/api/login.php`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    }).then(r => r.json());
     if (res.success) {
-      localStorage.setItem('vr_token', res.token);
-      localStorage.setItem('vr_user',  res.username);
+      authToken = res.token || '';
+      localStorage.setItem('vr_token', authToken);
+      localStorage.setItem('vr_user', res.username);
       currentUser = res.username;
       document.getElementById('topbar-username').textContent = currentUser;
       showPage('dash'); loadLicenses();
-    } else { showErr(errEl, res.message||'登入失敗'); }
-  } catch(e) { showErr(errEl,'連線失敗，請稍後再試'); }
-  finally { btn.disabled=false; btn.innerHTML='登入'; }
+    } else { showErr(errEl, res.message || '登入失敗'); }
+  } catch (e) { showErr(errEl, '連線失敗，請稍後再試'); }
+  finally { btn.disabled = false; btn.innerHTML = '登入'; }
 }
-
+ 
 function doLogout() {
-  localStorage.removeItem('vr_token');
-  localStorage.removeItem('vr_user');
-  currentUser = '';
+  localStorage.removeItem('vr_token'); localStorage.removeItem('vr_user');
+  authToken = ''; currentUser = '';
   document.getElementById('inp-user').value = '';
   document.getElementById('inp-pass').value = '';
+  expandedPanels.clear();
   showPage('login');
 }
-
-// ── License list ──────────────────────────────────────────────────────────────
+ 
+// ── License list ──────────────────────────────────────────────
 async function loadLicenses() {
   showLoading('載入授權列表…');
   try {
     const res = await apiGet(`${BASE}/api/load_license.php`);
-    allLicenses = res.success ? (Array.isArray(res.data)?res.data:(res.data?[res.data]:[])) : [];
+    allLicenses = res.success ? (Array.isArray(res.data) ? res.data : (res.data ? [res.data] : [])) : [];
     renderTable(allLicenses); updateStats(allLicenses);
-  } catch(e) { toast('無法載入資料','err'); }
+  } catch (e) { toast('無法載入資料', 'err'); }
   finally { hideLoading(); }
 }
-
+ 
 function updateStats(list) {
-  const active = list.filter(l=>l.active===true||l.active===1).length;
-  document.getElementById('stat-total').textContent    = list.length;
-  document.getElementById('stat-active').textContent   = active;
-  document.getElementById('stat-inactive').textContent = list.length-active;
+  const active = list.filter(l => l.active === true || l.active === 1).length;
+  document.getElementById('stat-total').textContent = list.length;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-inactive').textContent = list.length - active;
 }
-
+ 
 function renderTable(list) {
   const tbody = document.getElementById('license-tbody');
   tbody.innerHTML = '';
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">查無資料</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="10">查無資料</td></tr>'; return; }
   list.forEach(lic => {
-    const isActive = lic.active===true||lic.active===1;
-    const isInf    = lic.infinity===true||lic.infinity===1;
-    const count    = lic.count != null ? lic.count : '—';
+    const isActive = lic.active === true || lic.active === 1;
+    const isInf = lic.infinity === true || lic.infinity === 1;
+    const count = lic.count != null ? lic.count : '—';
+    const maxDev = lic.max_devices != null ? lic.max_devices : '∞';
     const countCell = isInf
       ? '<span style="color:var(--muted)">∞</span>'
-      : `<span style="font-family:monospace;font-weight:600;color:${count===0?'var(--danger)':'var(--text)'}">${count}</span>`;
+      : `<span style="font-family:monospace;font-weight:600;color:${count === 0 ? 'var(--danger)' : 'var(--text)'}">${count}</span>`;
+ 
+    // Main license row
     const tr = document.createElement('tr');
+    tr.className = 'lic-row';
+    tr.dataset.serial = lic.serial_code || '';
+    tr.id = 'lic-row-' + (lic.objectId || '');
     tr.innerHTML = `
-      <td style="font-family:monospace;font-size:.82rem;color:var(--muted)">${esc(lic.serial_code||'—')}</td>
-      <td style="font-weight:500">${esc(lic.user_name||'—')}</td>
-      <td style="color:var(--muted)">${esc(lic.email||'—')}</td>
-      <td>${isInf?'<span class="badge badge-inf">∞ 無限</span>':'<span class="badge badge-off">限制</span>'}</td>
+      <td style="width:24px;padding-left:1rem"><span class="expand-arrow">▶</span></td>
+      <td style="font-family:monospace;font-size:.82rem;color:var(--muted)">${esc(lic.serial_code || '—')}</td>
+      <td style="font-weight:500">${esc(lic.user_name || '—')}</td>
+      <td style="color:var(--muted)">${esc(lic.email || '—')}</td>
+      <td>${isInf ? '<span class="badge badge-inf">∞ 無限</span>' : '<span class="badge badge-off">限制</span>'}</td>
       <td>${countCell}</td>
-      <td>${isActive?'<span class="badge badge-active">✔ 啟用</span>':'<span class="badge badge-off">✘ 停用</span>'}</td>
-      <td style="color:var(--muted);font-size:.82rem">${(lic.created_at||'').slice(0,10)}</td>
+      <td><span style="font-size:.8rem;color:var(--muted)" id="devcount-${esc(lic.serial_code)}">— / ${maxDev}</span></td>
+      <td>${isActive ? '<span class="badge badge-active">✔ 啟用</span>' : '<span class="badge badge-off">✘ 停用</span>'}</td>
+      <td style="color:var(--muted);font-size:.82rem">${(lic.created_at || '').slice(0, 10)}</td>
       <td>
-        <button class="act-btn" onclick='openModal(${JSON.stringify(lic)})'>編輯</button>
-        <button class="act-btn d" onclick="toggleLicense('${lic.objectId}',${!isActive})">${isActive?'停用':'啟用'}</button>
+        <button class="act-btn" onclick='event.stopPropagation();openModal(${JSON.stringify(lic)})'>編輯</button>
+        <button class="act-btn d" onclick="event.stopPropagation();toggleLicense('${lic.objectId}',${!isActive})">${isActive ? '停用' : '啟用'}</button>
       </td>`;
+    tr.addEventListener('click', () => toggleDevicePanel(lic.serial_code, lic.objectId, lic.max_devices));
     tbody.appendChild(tr);
+ 
+    // Device panel row (hidden by default)
+    const dp = document.createElement('tr');
+    dp.className = 'device-panel';
+    dp.id = 'dp-' + (lic.objectId || '');
+    dp.innerHTML = `<td colspan="10"><div class="device-panel-inner" id="dpi-${lic.objectId}">
+      <div class="device-loading"><span class="spinner-sm"></span> 載入裝置資料…</div>
+    </div></td>`;
+    tbody.appendChild(dp);
   });
 }
-
+ 
 function filterTable() {
   const q = document.getElementById('search-input').value.toLowerCase();
   renderTable(allLicenses.filter(l =>
-    (l.user_name||'').toLowerCase().includes(q)||(l.serial_code||'').toLowerCase().includes(q)||(l.email||'').toLowerCase().includes(q)
+    (l.user_name || '').toLowerCase().includes(q) ||
+    (l.serial_code || '').toLowerCase().includes(q) ||
+    (l.email || '').toLowerCase().includes(q)
   ));
 }
-
-// ── License modal ─────────────────────────────────────────────────────────────
+ 
+// ── Device panel ──────────────────────────────────────────────
+async function toggleDevicePanel(serial_code, objectId, max_devices) {
+  const licRow = document.getElementById('lic-row-' + objectId);
+  const dpRow  = document.getElementById('dp-' + objectId);
+  const dpi    = document.getElementById('dpi-' + objectId);
+  if (!licRow || !dpRow) return;
+ 
+  const isOpen = dpRow.classList.contains('open');
+  if (isOpen) {
+    dpRow.classList.remove('open');
+    licRow.classList.remove('expanded');
+    expandedPanels.delete(objectId);
+    return;
+  }
+ 
+  dpRow.classList.add('open');
+  licRow.classList.add('expanded');
+  expandedPanels.add(objectId);
+ 
+  // Show loading
+  dpi.innerHTML = '<div class="device-loading"><span class="spinner-sm"></span> 載入裝置資料…</div>';
+ 
+  try {
+    const res = await apiGet(`${BASE}/api/manage_devices.php?serial_code=${encodeURIComponent(serial_code)}`);
+    if (!res.success) { dpi.innerHTML = `<div class="no-devices">⚠ ${esc(res.message)}</div>`; return; }
+ 
+    const data = res.data;
+    deviceCache[serial_code] = data;
+    renderDevicePanel(dpi, serial_code, objectId, data, max_devices);
+ 
+    // Update device count column
+    const maxStr = max_devices != null ? max_devices : '∞';
+    const countEl = document.getElementById('devcount-' + serial_code);
+    if (countEl) countEl.textContent = `${data.bound_count} / ${maxStr}`;
+ 
+  } catch (e) { dpi.innerHTML = '<div class="no-devices">⚠ 無法載入裝置資料</div>'; }
+}
+ 
+function renderDevicePanel(dpi, serial_code, objectId, data, max_devices) {
+  const { devices, bound_count } = data;
+  const maxDev = max_devices != null ? parseInt(max_devices) : null;
+  const pct    = maxDev ? Math.min(100, Math.round(bound_count / maxDev * 100)) : 0;
+  const barCls = pct >= 100 ? 'full' : pct >= 70 ? 'warn' : '';
+ 
+  let html = `<div class="device-panel-header">
+    <span class="device-panel-title">🖥 綁定裝置（${bound_count}${maxDev ? ' / ' + maxDev : ' / ∞'} 台）</span>
+    ${bound_count > 0 ? `<button class="btn-danger-sm" onclick="deleteAllDevices('${esc(serial_code)}','${objectId}',${max_devices??'null'})">全部解除</button>` : ''}
+  </div>`;
+ 
+  if (maxDev) {
+    html += `<div class="device-limit-bar">
+      <span>${pct}%</span>
+      <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+ 
+  if (!devices.length) {
+    html += '<div class="no-devices" style="padding:.5rem 0">尚未有裝置綁定此序號</div>';
+  } else {
+    html += `<table class="device-table">
+      <thead><tr><th>裝置 ID（Hash）</th><th>平台</th><th>首次綁定</th><th>最後驗證</th><th></th></tr></thead>
+      <tbody>`;
+    devices.forEach(d => {
+      const shortId = d.device_id.length > 20 ? d.device_id.slice(0, 20) + '…' : d.device_id;
+      html += `<tr>
+        <td class="device-id-cell" title="${esc(d.device_id)}">${esc(shortId)}</td>
+        <td><span class="platform-badge">${esc(d.platform || 'Unknown')}</span></td>
+        <td style="color:var(--muted);font-size:.78rem">${(d.first_seen || '').slice(0, 16).replace('T', ' ')}</td>
+        <td style="color:var(--muted);font-size:.78rem">${(d.last_seen || '').slice(0, 16).replace('T', ' ')}</td>
+        <td><button class="btn-danger-sm" onclick="deleteDevice(${d.id},'${esc(serial_code)}','${objectId}',${max_devices??'null'})">解除</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+ 
+  dpi.innerHTML = html;
+}
+ 
+async function deleteDevice(id, serial_code, objectId, max_devices) {
+  if (!confirm('確定要解除此裝置的綁定嗎？')) return;
+  try {
+    const res = await apiPost(`${BASE}/api/manage_devices.php`, { action: 'delete', id });
+    if (res.success) {
+      toast('✔ 裝置綁定已解除', 'ok');
+      // Reload panel
+      const dpi = document.getElementById('dpi-' + objectId);
+      dpi.innerHTML = '<div class="device-loading"><span class="spinner-sm"></span> 更新中…</div>';
+      const res2 = await apiGet(`${BASE}/api/manage_devices.php?serial_code=${encodeURIComponent(serial_code)}`);
+      if (res2.success) {
+        renderDevicePanel(dpi, serial_code, objectId, res2.data, max_devices);
+        const maxStr = max_devices != null ? max_devices : '∞';
+        const countEl = document.getElementById('devcount-' + serial_code);
+        if (countEl) countEl.textContent = `${res2.data.bound_count} / ${maxStr}`;
+      }
+    } else { toast('⚠ ' + (res.message || '解除失敗'), 'err'); }
+  } catch (e) { toast('連線失敗', 'err'); }
+}
+ 
+async function deleteAllDevices(serial_code, objectId, max_devices) {
+  if (!confirm(`確定要解除「${serial_code}」的全部裝置綁定嗎？`)) return;
+  try {
+    const res = await apiPost(`${BASE}/api/manage_devices.php`, { action: 'delete_all', serial_code });
+    if (res.success) {
+      toast('✔ 全部裝置已解除綁定', 'ok');
+      const dpi = document.getElementById('dpi-' + objectId);
+      renderDevicePanel(dpi, serial_code, objectId, { devices: [], bound_count: 0 }, max_devices);
+      const maxStr = max_devices != null ? max_devices : '∞';
+      const countEl = document.getElementById('devcount-' + serial_code);
+      if (countEl) countEl.textContent = `0 / ${maxStr}`;
+    } else { toast('⚠ ' + (res.message || '操作失敗'), 'err'); }
+  } catch (e) { toast('連線失敗', 'err'); }
+}
+ 
+// ── License modal ─────────────────────────────────────────────
 function toggleCountField() {
   const isInf = document.getElementById('f-infinity').checked;
   document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
 }
-
-function openModal(lic=null) {
+ 
+function openModal(lic = null) {
   document.getElementById('modal-error').classList.remove('show');
-  document.getElementById('modal-title').textContent = lic?'編輯 License':'新增 License';
-  document.getElementById('edit-objectId').value = lic?.objectId||'';
-  document.getElementById('f-username').value    = lic?.user_name||'';
-  document.getElementById('f-email').value       = lic?.email||'';
-  const isInf = lic ? (lic.infinity===true||lic.infinity===1) : true;
+  document.getElementById('modal-title').textContent = lic ? '編輯 License' : '新增 License';
+  document.getElementById('edit-objectId').value = lic?.objectId || '';
+  document.getElementById('f-username').value    = lic?.user_name || '';
+  document.getElementById('f-email').value       = lic?.email || '';
+  document.getElementById('f-maxdevices').value  = lic?.max_devices != null ? lic.max_devices : '';
+  const isInf = lic ? (lic.infinity === true || lic.infinity === 1) : true;
   document.getElementById('f-infinity').checked  = isInf;
   document.getElementById('f-count').value       = (!isInf && lic?.count != null) ? lic.count : '';
   document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
   document.getElementById('modal-overlay').classList.add('show');
-  setTimeout(()=>document.getElementById('f-username').focus(),100);
+  setTimeout(() => document.getElementById('f-username').focus(), 100);
 }
 function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
-document.getElementById('modal-overlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
-
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+ 
 async function saveLicense() {
-  const objectId  = document.getElementById('edit-objectId').value;
-  const user_name = document.getElementById('f-username').value.trim();
-  const email     = document.getElementById('f-email').value.trim();
-  const infinity  = document.getElementById('f-infinity').checked;
-  const countVal  = document.getElementById('f-count').value;
-  const errEl     = document.getElementById('modal-error');
-  const btn       = document.getElementById('btn-save');
+  const objectId   = document.getElementById('edit-objectId').value;
+  const user_name  = document.getElementById('f-username').value.trim();
+  const email      = document.getElementById('f-email').value.trim();
+  const infinity   = document.getElementById('f-infinity').checked;
+  const countVal   = document.getElementById('f-count').value;
+  const maxDevVal  = document.getElementById('f-maxdevices').value;
+  const errEl      = document.getElementById('modal-error');
+  const btn        = document.getElementById('btn-save');
   errEl.classList.remove('show');
-  if (!user_name) { showErr(errEl,'請填寫單位名稱'); return; }
-  if (!infinity && (!countVal || parseInt(countVal) < 1)) { showErr(errEl,'請填寫使用次數上限（至少 1）'); return; }
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>儲存中…';
+  if (!user_name) { showErr(errEl, '請填寫單位名稱'); return; }
+  if (!infinity && (!countVal || parseInt(countVal) < 1)) { showErr(errEl, '請填寫使用次數上限（至少 1）'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
   try {
-    const payload = { user_name, infinity: infinity?1:0, active: 1 };
+    const payload = { user_name, infinity: infinity ? 1 : 0, active: 1 };
     if (email) payload.email = email;
     if (!infinity) payload.count = parseInt(countVal);
+    if (maxDevVal !== '') payload.max_devices = parseInt(maxDevVal);
+    else payload.max_devices = null;
     if (objectId) payload.objectId = objectId;
     const url = objectId ? `${BASE}/api/update_license.php` : `${BASE}/api/save_license.php`;
     const res = await apiPost(url, payload);
     if (res.success) {
-      toast(objectId?'✔ 授權資料已更新':'✔ 新增授權成功','ok');
+      toast(objectId ? '✔ 授權資料已更新' : '✔ 新增授權成功', 'ok');
       closeModal(); await loadLicenses();
-    } else { showErr(errEl, res.message||'儲存失敗'); }
-  } catch(e) { showErr(errEl,'連線失敗'); }
-  finally { btn.disabled=false; btn.innerHTML='儲存'; }
+    } else { showErr(errEl, res.message || '儲存失敗'); }
+  } catch (e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '儲存'; }
 }
-
+ 
 async function toggleLicense(objectId, active) {
-  showLoading(active?'啟用中…':'停用中…');
+  showLoading(active ? '啟用中…' : '停用中…');
   try {
-    const res = await apiPost(`${BASE}/api/update_license.php`, { objectId, active: active?1:0 });
-    if (res.success) { toast(active?'✔ 已啟用授權':'✔ 已停用授權','ok'); await loadLicenses(); }
-    else { toast('操作失敗：'+(res.message||''),'err'); hideLoading(); }
-  } catch(e) { toast('連線失敗','err'); hideLoading(); }
+    const res = await apiPost(`${BASE}/api/update_license.php`, { objectId, active: active ? 1 : 0 });
+    if (res.success) { toast(active ? '✔ 已啟用授權' : '✔ 已停用授權', 'ok'); await loadLicenses(); }
+    else { toast('操作失敗：' + (res.message || ''), 'err'); hideLoading(); }
+  } catch (e) { toast('連線失敗', 'err'); hideLoading(); }
 }
-
-// ── Account settings modal ────────────────────────────────────────────────────
+ 
+// ── Account settings modal ────────────────────────────────────
 function openPwdModal() {
   document.getElementById('pwd-error').classList.remove('show');
   document.getElementById('pwd-ok').classList.remove('show');
   document.getElementById('pwd-username').value = currentUser;
-  document.getElementById('pwd-old').value      = '';
-  document.getElementById('pwd-new').value      = '';
-  document.getElementById('pwd-confirm').value  = '';
+  document.getElementById('pwd-old').value = '';
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
   document.getElementById('pwd-modal-overlay').classList.add('show');
-  setTimeout(()=>document.getElementById('pwd-old').focus(),100);
+  setTimeout(() => document.getElementById('pwd-old').focus(), 100);
 }
 function closePwdModal() { document.getElementById('pwd-modal-overlay').classList.remove('show'); }
-document.getElementById('pwd-modal-overlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closePwdModal(); });
-
+document.getElementById('pwd-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closePwdModal(); });
+ 
 async function saveAccount() {
   const newUsername = document.getElementById('pwd-username').value.trim();
   const oldPwd      = document.getElementById('pwd-old').value;
@@ -416,33 +1200,30 @@ async function saveAccount() {
   const okEl        = document.getElementById('pwd-ok');
   const btn         = document.getElementById('btn-pwd-save');
   hideMsg(errEl); hideMsg(okEl);
-
-  if (!oldPwd) { showErr(errEl,'請輸入目前密碼'); return; }
-  if (newPwd && newPwd !== confirmPwd) { showErr(errEl,'新密碼與確認密碼不符'); return; }
-  if (newPwd && newPwd.length < 6) { showErr(errEl,'新密碼至少需要 6 個字元'); return; }
-
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>儲存中…';
+  if (!oldPwd) { showErr(errEl, '請輸入目前密碼'); return; }
+  if (newPwd && newPwd !== confirmPwd) { showErr(errEl, '新密碼與確認密碼不符'); return; }
+  if (newPwd && newPwd.length < 6) { showErr(errEl, '新密碼至少需要 6 個字元'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
   try {
     const payload = { username: currentUser, old_password: oldPwd };
     if (newUsername && newUsername !== currentUser) payload.new_username = newUsername;
     if (newPwd) payload.new_password = newPwd;
-
     const res = await apiPost(`${BASE}/api/update_user.php`, payload);
     if (res.success) {
-      // Update stored username if changed
       if (newUsername && newUsername !== currentUser) {
         currentUser = newUsername;
         localStorage.setItem('vr_user', currentUser);
         document.getElementById('topbar-username').textContent = currentUser;
       }
       showOk(okEl, '帳號資料已更新');
-      document.getElementById('pwd-old').value     = '';
-      document.getElementById('pwd-new').value     = '';
+      document.getElementById('pwd-old').value = '';
+      document.getElementById('pwd-new').value = '';
       document.getElementById('pwd-confirm').value = '';
-    } else { showErr(errEl, res.message||'更新失敗'); }
-  } catch(e) { showErr(errEl,'連線失敗'); }
-  finally { btn.disabled=false; btn.innerHTML='儲存變更'; }
+    } else { showErr(errEl, res.message || '更新失敗'); }
+  } catch (e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '儲存變更'; }
 }
 </script>
 </body>
 </html>
+ 

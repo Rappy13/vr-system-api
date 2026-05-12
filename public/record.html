@@ -77,6 +77,26 @@
   .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.12); }
   .field-input::placeholder { color: var(--muted); }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.4); cursor: pointer; }
+  .date-mode-toggle {
+    display: flex; gap: .5rem; margin-bottom: .6rem;
+  }
+  .date-mode-btn {
+    flex: 1; padding: .4rem; font-size: .72rem; font-weight: 600;
+    letter-spacing: .5px; text-transform: uppercase;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 6px; cursor: pointer;
+    font-family: inherit; transition: all .2s;
+  }
+  .date-mode-btn.active {
+    background: rgba(0,212,255,.1); border-color: var(--accent); color: var(--accent);
+  }
+  .date-range-wrap {
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .date-range-wrap .field-input { flex: 1; }
+  .date-range-sep {
+    color: var(--muted); font-size: .8rem; white-space: nowrap; flex-shrink: 0;
+  }
   .btn-query {
     width: 100%; padding: .85rem;
     background: linear-gradient(135deg, var(--accent), #0099cc);
@@ -229,8 +249,23 @@
              placeholder="輸入Email" autocomplete="off" spellcheck="false">
     </div>
     <div class="field-group">
-      <label class="field-label" for="input-date">訓練日期</label>
-      <input id="input-date" class="field-input" type="date">
+      <label class="field-label">訓練日期</label>
+      <div class="date-mode-toggle">
+        <button class="date-mode-btn active" id="btn-mode-single" onclick="setDateMode('single')">單日</button>
+        <button class="date-mode-btn" id="btn-mode-range" onclick="setDateMode('range')">日期區間</button>
+      </div>
+      <!-- 單日 -->
+      <div id="date-single">
+        <input id="input-date" class="field-input" type="date">
+      </div>
+      <!-- 日期區間 -->
+      <div id="date-range" style="display:none">
+        <div class="date-range-wrap">
+          <input id="input-date-from" class="field-input" type="date">
+          <span class="date-range-sep">～</span>
+          <input id="input-date-to" class="field-input" type="date">
+        </div>
+      </div>
     </div>
     <button id="btn-query" class="btn-query" onclick="doQuery()">查詢訓練紀錄</button>
     <div id="error-msg" class="error-msg"></div>
@@ -304,7 +339,10 @@
 const BASE = 'https://vr-system-api.onrender.com';
 let lastData = null;
 
-document.getElementById('input-date').value = new Date().toISOString().slice(0,10);
+const today = new Date().toISOString().slice(0,10);
+document.getElementById('input-date').value      = today;
+document.getElementById('input-date-from').value = today;
+document.getElementById('input-date-to').value   = today;
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('page-search').classList.contains('active')) doQuery();
 });
@@ -346,16 +384,39 @@ function getDisplayTime(gameData, rec) {
   return (rec.fake_time || rec.created_at || '').slice(0, 16).replace('T', ' ');
 }
 
+// ── Date mode ─────────────────────────────────────────────────────────────────
+let dateMode = 'single';
+function setDateMode(mode) {
+  dateMode = mode;
+  document.getElementById('btn-mode-single').classList.toggle('active', mode === 'single');
+  document.getElementById('btn-mode-range').classList.toggle('active', mode === 'range');
+  document.getElementById('date-single').style.display = mode === 'single' ? '' : 'none';
+  document.getElementById('date-range').style.display  = mode === 'range'  ? '' : 'none';
+}
+
 async function doQuery() {
   const serial = document.getElementById('input-serial').value.trim();
-  const date   = document.getElementById('input-date').value;
   const btn    = document.getElementById('btn-query');
+
+  // Date validation based on mode
+  let dateFrom, dateTo, dateLabel;
+  if (dateMode === 'single') {
+    const date = document.getElementById('input-date').value;
+    if (!date) { showError('請選擇日期'); return; }
+    dateFrom = dateTo = date;
+    dateLabel = date;
+  } else {
+    dateFrom = document.getElementById('input-date-from').value;
+    dateTo   = document.getElementById('input-date-to').value;
+    if (!dateFrom || !dateTo) { showError('請選擇起訖日期'); return; }
+    if (dateFrom > dateTo)    { showError('起始日期不可晚於結束日期'); return; }
+    dateLabel = dateFrom === dateTo ? dateFrom : `${dateFrom} ～ ${dateTo}`;
+  }
 
   document.getElementById('error-msg').classList.remove('show');
   clearLog();
 
   if (!serial) { showError('請輸入學員代碼或 Email'); return; }
-  if (!date)   { showError('請選擇日期');     return; }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>查詢中…';
@@ -390,12 +451,13 @@ async function doQuery() {
       return;
     }
 
-    // Step 3: Date filter — 比對 fake_time 日期
-    const filtered = recJson.data.filter(r =>
-      (r.fake_time || r.created_at || '').slice(0, 10) === date
-    );
+    // Step 3: Date filter — 支援單日與區間
+    const filtered = recJson.data.filter(r => {
+      const recDate = (r.fake_time || r.created_at || '').slice(0, 10);
+      return recDate >= dateFrom && recDate <= dateTo;
+    });
     if (!filtered.length) {
-      showError(`在 ${date} 查無訓練紀錄（共有 ${recJson.data.length} 筆其他日期紀錄）`);
+      showError(`在 ${dateLabel} 查無訓練紀錄（共有 ${recJson.data.length} 筆其他日期紀錄）`);
       return;
     }
     log(`✔ 找到 ${filtered.length} 筆紀錄，開始分析…`, 'ok');
@@ -504,7 +566,7 @@ async function doQuery() {
     if (!results.length) { showError('分析後無有效資料'); return; }
     log(`✔ 完成！共 ${results.length} 筆`, 'ok');
     const displayName = licData.user_name?.trim() || licData.email?.trim() || serial;
-    lastData = { serial_code: serial, display_name: displayName, date, records: results };
+    lastData = { serial_code: serial, display_name: displayName, date: dateLabel, records: results };
 
     setTimeout(() => { renderTable(); showPage('result'); }, 400);
 

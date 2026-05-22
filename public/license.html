@@ -740,19 +740,100 @@ async function saveEditUser() {
   finally { btn.disabled = false; btn.innerHTML = '儲存'; }
 }
 
+// ── 新增使用者 ────────────────────────────────────────────────
+function openCreateUserModal() {
+  document.getElementById('create-user-error').classList.remove('show');
+  document.getElementById('cu-username').value  = '';
+  document.getElementById('cu-password').value  = '';
+  document.getElementById('cu-confirm').value   = '';
+  document.getElementById('cu-role').value      = 'reseller';
+  document.getElementById('cu-infinity').checked = false;
+  document.getElementById('cu-alloc').value     = '0';
+  document.getElementById('create-user-modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('cu-username').focus(), 100);
+}
+function closeCreateUserModal() { document.getElementById('create-user-modal-overlay').classList.remove('show'); }
+document.getElementById('create-user-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeCreateUserModal(); });
+
+async function saveCreateUser() {
+  const username = document.getElementById('cu-username').value.trim();
+  const password = document.getElementById('cu-password').value;
+  const confirm  = document.getElementById('cu-confirm').value;
+  const role     = document.getElementById('cu-role').value;
+  const infinity = document.getElementById('cu-infinity').checked ? 1 : 0;
+  const alloc    = parseInt(document.getElementById('cu-alloc').value) || 0;
+  const errEl    = document.getElementById('create-user-error');
+  const btn      = document.getElementById('btn-create-user-save');
+  errEl.classList.remove('show');
+  if (!username)            { showErr(errEl, '請填寫帳號'); return; }
+  if (!password)            { showErr(errEl, '請填寫密碼'); return; }
+  if (password.length < 6)  { showErr(errEl, '密碼至少需要 6 個字元'); return; }
+  if (password !== confirm)  { showErr(errEl, '兩次密碼輸入不一致'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>建立中…';
+  try {
+    const res = await apiPost(`${BASE}/api/create_user.php`, {
+      username, password, role,
+      can_allocate_infinity: infinity,
+      allocatable_count: alloc
+    });
+    if (res.success) {
+      toast('✔ 使用者已建立', 'ok');
+      closeCreateUserModal();
+      openUserModal();
+    } else { showErr(errEl, res.message || '建立失敗'); }
+  } catch(e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '建立'; }
+}
+
 </script>
 <!-- MODAL: 使用者管理 -->
 <div class="modal-overlay" id="user-modal-overlay">
   <div class="modal wide">
     <div class="modal-header">
       <div class="modal-title">👥 使用者管理</div>
-      <button class="modal-close" onclick="closeUserModal()">✕</button>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <button class="btn-add" style="padding:.4rem 1rem;font-size:.8rem" onclick="openCreateUserModal()">＋ 新增使用者</button>
+        <button class="modal-close" onclick="closeUserModal()">✕</button>
+      </div>
     </div>
     <div class="modal-body">
       <div class="modal-err" id="user-modal-error"></div>
       <div id="user-table-wrap" style="overflow-x:auto">
         <div style="color:var(--muted);font-size:.85rem">載入中…</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 新增 User -->
+<div class="modal-overlay" id="create-user-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ 新增使用者</div>
+      <button class="modal-close" onclick="closeCreateUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="create-user-error"></div>
+      <div class="field"><label>帳號 *</label><input id="cu-username" class="fi" type="text" placeholder="帳號名稱" autocomplete="off"></div>
+      <div class="field"><label>密碼 *（至少 6 碼）</label><input id="cu-password" class="fi" type="password" placeholder="設定密碼" autocomplete="new-password"></div>
+      <div class="field"><label>確認密碼 *</label><input id="cu-confirm" class="fi" type="password" placeholder="再輸入一次" autocomplete="new-password"></div>
+      <div class="field"><label>階級</label>
+        <select id="cu-role" class="fi">
+          <option value="reseller">經銷商（reseller）</option>
+          <option value="admin">管理員（admin）</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="toggle-wrap">
+          <label>可無限分配次數</label>
+          <label class="toggle"><input type="checkbox" id="cu-infinity"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field"><label>可分配次數</label><input id="cu-alloc" class="fi" type="number" min="0" placeholder="0" value="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCreateUserModal()">取消</button>
+      <button class="btn-save" id="btn-create-user-save" onclick="saveCreateUser()">建立</button>
     </div>
   </div>
 </div>

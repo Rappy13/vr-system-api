@@ -134,6 +134,16 @@ tr.device-panel.open .device-panel-inner{display:block}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.ok{background:var(--accent2)}.toast.err{background:var(--accent)}
 .divider{border:none;border-top:1px solid var(--border);margin:.5rem 0}
+/* ── User modal table ── */
+.user-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.user-table th{padding:.6rem .9rem;text-align:left;font-size:.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border)}
+.user-table td{padding:.65rem .9rem;border-bottom:1px solid var(--border);vertical-align:middle}
+.user-table tr:last-child td{border-bottom:none}
+.user-table tr:hover td{background:rgba(200,75,49,.03)}
+.role-badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.72rem;font-weight:600}
+.role-admin{background:rgba(200,75,49,.1);color:var(--accent)}
+.role-reseller{background:rgba(45,90,61,.1);color:var(--accent2)}
+.modal.wide{max-width:700px}
 @media(max-width:640px){.login-wrap{grid-template-columns:1fr}.login-brand{display:none}.stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -172,6 +182,7 @@ tr.device-panel.open .device-panel-inner{display:block}
     <div class="topbar-brand">FireAway XR <span>管理系統</span></div>
     <div class="topbar-user">
       歡迎，<strong id="topbar-username">—</strong>
+      <button class="btn-topbar" id="btn-user-mgmt" style="display:none" onclick="openUserModal()">👥 使用者管理</button>
       <a class="btn-topbar" href="https://rappy13.github.io/vr-system-api/public/license_manual.html" target="_blank" rel="noopener">📖 使用教學</a>
       <button class="btn-topbar" onclick="openPwdModal()">⚙ 帳號設定</button>
       <button class="btn-topbar logout" onclick="doLogout()">登出</button>
@@ -259,7 +270,7 @@ tr.device-panel.open .device-panel-inner{display:block}
 
 <script>
 const BASE = 'https://vr-system-api.onrender.com';
-let allLicenses = [], currentUser = '', authToken = '';
+let allLicenses = [], currentUser = '', authToken = '', currentRole = '', currentObjectId = '';
 // 記錄已展開的面板及其裝置資料 cache
 const expandedPanels = new Set();
 const deviceCache = {};
@@ -267,7 +278,9 @@ const deviceCache = {};
 // ── Init ──────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   authToken   = localStorage.getItem('vr_token') || '';
-  currentUser = localStorage.getItem('vr_user')  || '';
+  currentUser    = localStorage.getItem('vr_user')     || '';
+  currentRole    = localStorage.getItem('vr_role')     || '';
+  currentObjectId = localStorage.getItem('vr_objectid') || '';
   if (authToken) {
     document.getElementById('topbar-username').textContent = currentUser;
     showPage('dash');
@@ -321,6 +334,10 @@ async function doLogin() {
       localStorage.setItem('vr_token', authToken);
       localStorage.setItem('vr_user', uname);
       localStorage.setItem('vr_objectid', res.data?.objectId || res.objectId || '');
+      localStorage.setItem('vr_role', res.data?.role || res.role || '');
+      currentRole = res.data?.role || res.role || '';
+      currentObjectId = res.data?.objectId || res.objectId || '';
+      if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
       currentUser = uname;
       document.getElementById('topbar-username').textContent = currentUser;
       showPage('dash'); loadLicenses();
@@ -330,7 +347,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  localStorage.removeItem('vr_token'); localStorage.removeItem('vr_user'); localStorage.removeItem('vr_objectid');
+  localStorage.removeItem('vr_token'); localStorage.removeItem('vr_user'); localStorage.removeItem('vr_objectid'); localStorage.removeItem('vr_role');
   authToken = ''; currentUser = '';
   document.getElementById('inp-user').value = '';
   document.getElementById('inp-pass').value = '';
@@ -632,6 +649,145 @@ async function saveAccount() {
   } catch (e) { showErr(errEl, '連線失敗'); }
   finally { btn.disabled = false; btn.innerHTML = '儲存變更'; }
 }
+// ── User 管理 ─────────────────────────────────────────────────
+async function openUserModal() {
+  document.getElementById('user-modal-error').classList.remove('show');
+  document.getElementById('user-modal-overlay').classList.add('show');
+  document.getElementById('user-table-wrap').innerHTML = '<div style="color:var(--muted);font-size:.85rem">載入中…</div>';
+  try {
+    const res = await apiGet(`${BASE}/api/load_users.php`);
+    if (!res.success) {
+      document.getElementById('user-table-wrap').innerHTML = `<div style="color:var(--danger)">⚠ ${esc(res.message)}</div>`;
+      return;
+    }
+    renderUserTable(res.data || []);
+  } catch(e) {
+    document.getElementById('user-table-wrap').innerHTML = '<div style="color:var(--danger)">⚠ 連線失敗</div>';
+  }
+}
+function closeUserModal() { document.getElementById('user-modal-overlay').classList.remove('show'); }
+document.getElementById('user-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeUserModal(); });
+
+function renderUserTable(users) {
+  if (!users.length) {
+    document.getElementById('user-table-wrap').innerHTML = '<div style="color:var(--muted);font-size:.85rem">目前沒有其他使用者</div>';
+    return;
+  }
+  let html = `<table class="user-table"><thead><tr>
+    <th>帳號</th><th>階級</th><th>可無限分配</th><th>可分配次數</th><th>操作</th>
+  </tr></thead><tbody>`;
+  users.forEach(u => {
+    const roleLabel = u.role === 'admin'
+      ? '<span class="role-badge role-admin">管理員</span>'
+      : '<span class="role-badge role-reseller">經銷商</span>';
+    const infLabel = (u.can_allocate_infinity == 1 || u.can_allocate_infinity === true) ? '✔ 是' : '—';
+    const uJson = encodeURIComponent(JSON.stringify(u));
+    html += `<tr>
+      <td style="font-weight:500">${esc(u.username)}</td>
+      <td>${roleLabel}</td>
+      <td style="font-size:.82rem;color:var(--muted)">${infLabel}</td>
+      <td style="font-family:monospace">${u.allocatable_count ?? 0}</td>
+      <td><button class="act-btn" onclick="openEditUserModal(decodeAndParse('${uJson}'))">編輯</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('user-table-wrap').innerHTML = html;
+}
+
+function decodeAndParse(s) { return JSON.parse(decodeURIComponent(s)); }
+
+function openEditUserModal(u) {
+  document.getElementById('edit-user-error').classList.remove('show');
+  document.getElementById('eu-objectId').value    = u.objectId || '';
+  document.getElementById('eu-username').value    = u.username || '';
+  document.getElementById('eu-password').value    = '';
+  document.getElementById('eu-role').value         = u.role || 'reseller';
+  document.getElementById('eu-infinity').checked   = u.can_allocate_infinity == 1 || u.can_allocate_infinity === true;
+  document.getElementById('eu-alloc').value        = u.allocatable_count ?? 0;
+  document.getElementById('edit-user-modal-overlay').classList.add('show');
+}
+function closeEditUserModal() { document.getElementById('edit-user-modal-overlay').classList.remove('show'); }
+document.getElementById('edit-user-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeEditUserModal(); });
+
+async function saveEditUser() {
+  const objectId = document.getElementById('eu-objectId').value;
+  const username = document.getElementById('eu-username').value.trim();
+  const password = document.getElementById('eu-password').value;
+  const role     = document.getElementById('eu-role').value;
+  const infinity = document.getElementById('eu-infinity').checked ? 1 : 0;
+  const alloc    = parseInt(document.getElementById('eu-alloc').value) || 0;
+  const errEl    = document.getElementById('edit-user-error');
+  const btn      = document.getElementById('btn-edit-user-save');
+  errEl.classList.remove('show');
+  if (!username) { showErr(errEl, '請填寫帳號'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
+  try {
+    const payload = {
+      target_objectId: objectId,
+      new_username: username,
+      role,
+      can_allocate_infinity: infinity,
+      allocatable_count: alloc
+    };
+    if (password) payload.new_password = password;
+    const res = await apiPost(`${BASE}/api/update_user_admin.php`, payload);
+    if (res.success) {
+      toast('✔ 使用者已更新', 'ok');
+      closeEditUserModal();
+      openUserModal();
+    } else { showErr(errEl, res.message || '更新失敗'); }
+  } catch(e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '儲存'; }
+}
+
 </script>
+<!-- MODAL: 使用者管理 -->
+<div class="modal-overlay" id="user-modal-overlay">
+  <div class="modal wide">
+    <div class="modal-header">
+      <div class="modal-title">👥 使用者管理</div>
+      <button class="modal-close" onclick="closeUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="user-modal-error"></div>
+      <div id="user-table-wrap" style="overflow-x:auto">
+        <div style="color:var(--muted);font-size:.85rem">載入中…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 編輯 User -->
+<div class="modal-overlay" id="edit-user-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ 編輯使用者</div>
+      <button class="modal-close" onclick="closeEditUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="edit-user-error"></div>
+      <input type="hidden" id="eu-objectId">
+      <div class="field"><label>帳號</label><input id="eu-username" class="fi" type="text" placeholder="帳號名稱"></div>
+      <div class="field"><label>新密碼（留空不變）</label><input id="eu-password" class="fi" type="password" placeholder="不修改請留空"></div>
+      <div class="field"><label>階級</label>
+        <select id="eu-role" class="fi">
+          <option value="admin">管理員（admin）</option>
+          <option value="reseller">經銷商（reseller）</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="toggle-wrap">
+          <label>可無限分配次數</label>
+          <label class="toggle"><input type="checkbox" id="eu-infinity"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field"><label>可分配次數</label><input id="eu-alloc" class="fi" type="number" min="0" placeholder="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditUserModal()">取消</button>
+      <button class="btn-save" id="btn-edit-user-save" onclick="saveEditUser()">儲存</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

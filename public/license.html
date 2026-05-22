@@ -277,10 +277,10 @@ const deviceCache = {};
 
 // ── Init ──────────────────────────────────────────────────────
 window.addEventListener('load', () => {
-  authToken   = localStorage.getItem('vr_token') || '';
-  currentUser    = localStorage.getItem('vr_user')     || '';
-  currentRole    = localStorage.getItem('vr_role')     || '';
-  currentObjectId = localStorage.getItem('vr_objectid') || '';
+  authToken   = sessionStorage.getItem('vr_token') || '';
+  currentUser    = sessionStorage.getItem('vr_user')     || '';
+  currentRole    = sessionStorage.getItem('vr_role')     || '';
+  currentObjectId = sessionStorage.getItem('vr_objectid') || '';
   if (authToken) {
     document.getElementById('topbar-username').textContent = currentUser;
     showPage('dash');
@@ -331,10 +331,10 @@ async function doLogin() {
     if (res.success) {
       authToken = res.data?.token || res.token || '';
       const uname = res.data?.username || res.username || '';
-      localStorage.setItem('vr_token', authToken);
-      localStorage.setItem('vr_user', uname);
-      localStorage.setItem('vr_objectid', res.data?.objectId || res.objectId || '');
-      localStorage.setItem('vr_role', res.data?.role || res.role || '');
+      sessionStorage.setItem('vr_token', authToken);
+      sessionStorage.setItem('vr_user', uname);
+      sessionStorage.setItem('vr_objectid', res.data?.objectId || res.objectId || '');
+      sessionStorage.setItem('vr_role', res.data?.role || res.role || '');
       currentRole = res.data?.role || res.role || '';
       currentObjectId = res.data?.objectId || res.objectId || '';
       if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
@@ -347,7 +347,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  localStorage.removeItem('vr_token'); localStorage.removeItem('vr_user'); localStorage.removeItem('vr_objectid'); localStorage.removeItem('vr_role');
+  sessionStorage.removeItem('vr_token'); sessionStorage.removeItem('vr_user'); sessionStorage.removeItem('vr_objectid'); sessionStorage.removeItem('vr_role');
   authToken = ''; currentUser = '';
   document.getElementById('inp-user').value = '';
   document.getElementById('inp-pass').value = '';
@@ -638,7 +638,7 @@ async function saveAccount() {
     if (res.success) {
       if (newUsername && newUsername !== currentUser) {
         currentUser = newUsername;
-        localStorage.setItem('vr_user', currentUser);
+        sessionStorage.setItem('vr_user', currentUser);
         document.getElementById('topbar-username').textContent = currentUser;
       }
       showOk(okEl, '帳號資料已更新');

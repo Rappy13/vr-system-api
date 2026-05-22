@@ -3,6 +3,30 @@
 
 require_once 'config.php';
 
+// ── Token → objectId ──────────────────────────────────────────
+function getCallerObjectId(PDO $conn): ?string {
+    $headers = getallheaders();
+    $auth    = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    if (!preg_match('/Bearer\s+(.+)/i', $auth, $m)) return null;
+    $stmt = $conn->prepare('SELECT objectId FROM `User` WHERE token = ? AND token IS NOT NULL LIMIT 1');
+    $stmt->execute([trim($m[1])]);
+    $row = $stmt->fetch();
+    return $row ? $row['objectId'] : null;
+}
+
+// ── 取得 USER 的次數分配設定 ──────────────────────────────────
+function getUserAllocInfo(PDO $conn, string $objectId): array {
+    $stmt = $conn->prepare(
+        'SELECT can_allocate_infinity, allocatable_count FROM `User` WHERE objectId = ? LIMIT 1'
+    );
+    $stmt->execute([$objectId]);
+    $row = $stmt->fetch();
+    return [
+        'can_inf' => $row ? (bool)$row['can_allocate_infinity'] : false,
+        'alloc'   => $row ? (int)$row['allocatable_count']      : 0,
+    ];
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT') {
     sendResponse(false, 'Method not allowed. Use POST or PUT.', null, 405);
 }
@@ -78,6 +102,32 @@ try {
         }
     }
     
+    // ── 差額次數處理 ─────────────────────────────────────────
+    if (array_key_exists('count', $input) || array_key_exists('infinity', $input)) {
+        $callerId = getCallerObjectId($conn);
+        if ($callerId) {
+            $userInfo = getUserAllocInfo($conn, $callerId);
+            if (!$userInfo['can_inf']) {
+                $newInfinity = isset($input['infinity'])
+                    ? (int)(bool)$input['infinity']
+                    : (int)$existingRecord['infinity'];
+                $newCount = (!$newInfinity && isset($input['count']))
+                    ? max(0, (int)$input['count']) : 0;
+                $oldInfinity = (int)$existingRecord['infinity'];
+                $oldUsed     = $oldInfinity ? 0 : (int)$existingRecord['count'];
+                $diff        = $newCount - $oldUsed;
+                if ($diff > 0 && $diff > $userInfo['alloc']) {
+                    sendResponse(false, "次數超過可分配上限（剩餘 {$userInfo['alloc']} 次）", null, 422);
+                }
+                if ($diff !== 0) {
+                    $conn->prepare(
+                        'UPDATE `User` SET allocatable_count = allocatable_count - :diff WHERE objectId = :id'
+                    )->execute([':diff' => $diff, ':id' => $callerId]);
+                }
+            }
+        }
+    }
+
     if (empty($updateFields)) {
         sendResponse(false, 'No fields to update', null, 400);
     }

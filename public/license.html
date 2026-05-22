@@ -237,6 +237,7 @@ tr.device-panel.open .device-panel-inner{display:block}
       <div class="field">
         <label>裝置上限台數</label>
         <input id="f-maxdevices" class="fi" type="number" min="1" placeholder="留空 = 無限台數">
+        <div id="maxdevices-hint" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;display:none">非管理員帳號固定為 3 台</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -572,7 +573,19 @@ function openModal(lic = null) {
 
   document.getElementById('f-username').value    = lic?.user_name || '';
   document.getElementById('f-email').value       = lic?.email || '';
-  document.getElementById('f-maxdevices').value  = lic?.max_devices != null ? lic.max_devices : '';
+  const maxDevInp  = document.getElementById('f-maxdevices');
+  const maxDevHint = document.getElementById('maxdevices-hint');
+  if (currentRole !== 'admin') {
+    maxDevInp.value    = '3';
+    maxDevInp.disabled = true;
+    maxDevInp.style.opacity = '.5';
+    maxDevHint.style.display = '';
+  } else {
+    maxDevInp.value    = lic?.max_devices != null ? lic.max_devices : '';
+    maxDevInp.disabled = false;
+    maxDevInp.style.opacity = '';
+    maxDevHint.style.display = 'none';
+  }
 
   const infToggle = document.getElementById('f-infinity');
   const infWrap   = infToggle.closest('.toggle-wrap') || infToggle.closest('.field');

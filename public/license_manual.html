@@ -387,6 +387,25 @@ body::before {
       <span class="nav-icon">🔓</span> 解除裝置綁定
     </a>
 
+    <div class="nav-section">次數管理</div>
+    <a class="nav-item" href="#count-system" onclick="setActive(this)">
+      <span class="nav-icon">🔢</span> 次數分配機制
+    </a>
+    <a class="nav-item" href="#count-license" onclick="setActive(this)">
+      <span class="nav-icon">➗</span> 新增／編輯次數
+    </a>
+
+    <div class="nav-section">使用者管理</div>
+    <a class="nav-item" href="#user-mgmt" onclick="setActive(this)">
+      <span class="nav-icon">👥</span> 使用者列表
+    </a>
+    <a class="nav-item" href="#user-create" onclick="setActive(this)">
+      <span class="nav-icon">➕</span> 新增使用者
+    </a>
+    <a class="nav-item" href="#user-edit" onclick="setActive(this)">
+      <span class="nav-icon">✏️</span> 編輯使用者
+    </a>
+
     <div class="nav-section">帳號</div>
     <a class="nav-item" href="#account" onclick="setActive(this)">
       <span class="nav-icon">⚙️</span> 帳號設定
@@ -560,11 +579,15 @@ body::before {
         </div>
         <div class="step">
           <div class="step-num">4</div>
-          <div class="step-content"><strong>裝置上限台數</strong> — 此序號最多可在幾台實機上啟動。留空代表無限制台數</div>
+          <div class="step-content"><strong>裝置上限台數</strong> — 此序號最多可在幾台實機上啟動。管理員可自訂或留空（無限制）；經銷商帳號此欄位固定為 <strong>3 台</strong>，不可修改</div>
         </div>
         <div class="step">
           <div class="step-num">5</div>
-          <div class="step-content">按下<strong>儲存</strong>，系統會自動產生序號並寫入資料庫</div>
+          <div class="step-content"><strong>使用次數上限</strong> — 若帳號無無限分配權限，可填次數上限，上限為帳號剩餘可分配次數；若帳號有無限分配權限，則可任意填寫或開啟「無限次數」</div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">按下<strong>儲存</strong>，系統自動產生序號並寫入資料庫，可分配次數同步扣除</div>
         </div>
       </div>
 
@@ -744,8 +767,218 @@ body::before {
     <hr class="divider">
 
     <!-- ── 帳號設定 ── -->
+    <hr class="divider">
+
+    <!-- ── 次數分配機制 ── -->
+    <section class="section" id="count-system">
+      <div class="section-num">10 / 次數管理</div>
+      <h2 class="section-title"><span class="icon">🔢</span>次數分配機制</h2>
+      <div class="section-body">
+        <p>每個使用者帳號有兩個次數相關設定，決定建立序號時可分配多少機能使用次數給終端使用者。</p>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-card-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="ui-card-label">次數設定示意</div>
+        </div>
+        <div class="ui-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem">
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem">
+              <div style="font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">可無限分配</div>
+              <span class="bdg amber">∞ 開啟</span>
+              <div style="font-size:.78rem;color:rgba(240,235,228,.6);margin-top:.5rem">建立序號時次數欄無上限限制，也可開啟序號的「無限次數」</div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem">
+              <div style="font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">可分配次數</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--text)">500</div>
+              <div style="font-size:.78rem;color:rgba(240,235,228,.6);margin-top:.2rem">建立或加大序號次數時從此扣除，縮減時退回</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num green">∞</div>
+          <div class="step-content"><strong>可無限分配 = 開啟</strong> — 帳號可任意設定序號次數，也可開啟序號的「無限次數」功能，不受可分配次數限制</div>
+        </div>
+        <div class="step">
+          <div class="step-num">數</div>
+          <div class="step-content"><strong>可無限分配 = 關閉</strong> — 序號的「無限次數」toggle 會被鎖定為關閉，次數上限 = 帳號目前剩餘的可分配次數</div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">±</div>
+          <div class="step-content"><strong>差額計算</strong> — 編輯序號次數時，系統自動計算差額。增加次數 → 從帳號扣除差額；減少次數 → 退回差額到帳號</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">可分配次數與可分配次數上限由<strong>管理員</strong>在使用者管理中設定。經銷商帳號無法自行修改此數值。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 新增/編輯次數 ── -->
+    <section class="section" id="count-license">
+      <div class="section-num">11 / 次數管理</div>
+      <h2 class="section-title"><span class="icon">➗</span>新增／編輯次數</h2>
+      <div class="section-body">
+        <p>新增或編輯 License 時，次數欄位的行為依帳號設定而不同。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">開啟新增或編輯 Modal，若帳號<strong>無法無限分配</strong>，次數輸入框右下方會顯示目前剩餘可分配次數提示</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">輸入次數不可超過提示的上限，否則儲存時會顯示錯誤</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">儲存後，系統自動更新帳號的剩餘可分配次數</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">前端與後端都會驗證次數是否超過上限，即使繞過前端限制，後端仍會攔截並回傳錯誤。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 使用者列表 ── -->
+    <section class="section" id="user-mgmt">
+      <div class="section-num">12 / 使用者管理</div>
+      <h2 class="section-title"><span class="icon">👥</span>使用者列表</h2>
+      <div class="section-body">
+        <p>點擊右上角「👥 使用者管理」按鈕（<strong>僅管理員帳號可見</strong>）開啟使用者列表，顯示系統中除自己以外的所有使用者。</p>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-card-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="ui-card-label">使用者列表示意</div>
+        </div>
+        <div class="ui-card-body">
+          <table class="demo-table">
+            <thead><tr><th>帳號</th><th>階級</th><th>可無限分配</th><th>可分配次數</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:500;color:var(--text)">reseller_A</td>
+                <td><span class="bdg green" style="font-size:.68rem">經銷商</span></td>
+                <td style="color:var(--muted);font-size:.8rem">—</td>
+                <td style="font-family:monospace">500</td>
+                <td><span style="border:1px solid var(--border);color:var(--muted);padding:.2rem .6rem;border-radius:4px;font-size:.72rem">編輯</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:500;color:var(--text)">reseller_B</td>
+                <td><span class="bdg green" style="font-size:.68rem">經銷商</span></td>
+                <td style="color:#d4952a;font-size:.8rem">✔ 是</td>
+                <td style="font-family:monospace">0</td>
+                <td><span style="border:1px solid var(--border);color:var(--muted);padding:.2rem .6rem;border-radius:4px;font-size:.72rem">編輯</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-body">
+        <p>欄位說明：</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num green">級</div>
+          <div class="step-content"><strong>階級</strong> — <span style="color:#e06548">管理員</span>可存取所有功能；<span style="color:#4a9e5c">經銷商</span>只能管理自己建立的序號，裝置上限固定 3 台</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">∞</div>
+          <div class="step-content"><strong>可無限分配</strong> — 顯示「✔ 是」表示該帳號建立序號時沒有次數限制</div>
+        </div>
+        <div class="step">
+          <div class="step-num green">次</div>
+          <div class="step-content"><strong>可分配次數</strong> — 目前帳號剩餘可分配給序號的次數，每次新增序號時扣除，縮減時退回</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 新增使用者 ── -->
+    <section class="section" id="user-create">
+      <div class="section-num">13 / 使用者管理</div>
+      <h2 class="section-title"><span class="icon">➕</span>新增使用者</h2>
+      <div class="section-body">
+        <p>在使用者管理 Modal 右上角點擊「＋ 新增使用者」，填寫以下欄位後按建立。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content"><strong>帳號</strong>（必填）— 登入用帳號名稱，不可與現有帳號重複</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content"><strong>密碼</strong>（必填）— 至少 6 個字元，需輸入兩次確認</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content"><strong>階級</strong> — 選擇「經銷商」或「管理員」</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content"><strong>可無限分配次數</strong> — 開啟後該帳號建立序號時不受次數限制</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content"><strong>可分配次數</strong> — 設定初始可分配次數，日後可在編輯中調整</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">建立完成後，新帳號即可登入後台，並只看到以自己的 objectId 為 parent 的序號列表。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ── 編輯使用者 ── -->
+    <section class="section" id="user-edit">
+      <div class="section-num">14 / 使用者管理</div>
+      <h2 class="section-title"><span class="icon">✏️</span>編輯使用者</h2>
+      <div class="section-body">
+        <p>點擊使用者列表中的「編輯」按鈕，可修改以下設定：</p>
+      </div>
+
+      <div class="badge-row">
+        <span class="bdg gray">帳號名稱</span>
+        <span class="bdg gray">密碼（選填）</span>
+        <span class="bdg gray">階級</span>
+        <span class="bdg gray">可無限分配次數</span>
+        <span class="bdg gray">可分配次數</span>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">編輯使用者<strong>不需要輸入舊密碼</strong>，管理員可直接修改。密碼欄位留空則不變更密碼。</div>
+      </div>
+
+      <div class="callout danger">
+        <span class="callout-icon">🚫</span>
+        <div class="callout-body">管理員無法透過此頁面修改<strong>自己</strong>的資料，需使用右上角「⚙ 帳號設定」。</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
     <section class="section" id="account">
-      <div class="section-num">08 / 帳號</div>
+      <div class="section-num">15 / 帳號</div>
       <h2 class="section-title"><span class="icon">⚙️</span>帳號設定</h2>
       <div class="section-body">
         <p>點擊右上角「⚙ 帳號設定」可修改管理員帳號名稱與密碼。</p>
@@ -775,7 +1008,7 @@ body::before {
 
     <!-- ── 常見問題 ── -->
     <section class="section" id="faq">
-      <div class="section-num">09 / 常見問題</div>
+      <div class="section-num">16 / 常見問題</div>
       <h2 class="section-title"><span class="icon">❓</span>常見問題</h2>
 
       <div class="steps">
@@ -812,6 +1045,27 @@ body::before {
           <div class="step-content">
             <strong>「最後驗證」時間很久以前，代表什麼？</strong><br>
             代表該裝置長時間未啟動 App。可作為判斷是否為閒置裝置的依據，必要時可解除綁定回收名額。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>新增序號時顯示「次數超過可分配上限」？</strong><br>
+            帳號的可分配次數不足。請聯絡管理員增加你的可分配次數，或減少序號的次數上限設定。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>經銷商登入後看不到某些序號？</strong><br>
+            每個帳號只能看到以自己 objectId 為 parent 的序號。若序號是由其他帳號建立的，則不會顯示在列表中。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num amber">Q</div>
+          <div class="step-content">
+            <strong>經銷商的裝置上限為什麼無法修改？</strong><br>
+            系統設定經銷商帳號建立的序號裝置上限固定為 3 台，此限制由後台統一管理，如需調整請聯絡管理員直接修改該序號設定。
           </div>
         </div>
       </div>

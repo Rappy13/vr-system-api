@@ -320,6 +320,7 @@ async function doLogin() {
       const uname = res.data?.username || res.username || '';
       localStorage.setItem('vr_token', authToken);
       localStorage.setItem('vr_user', uname);
+      localStorage.setItem('vr_objectid', res.data?.objectId || res.objectId || '');
       currentUser = uname;
       document.getElementById('topbar-username').textContent = currentUser;
       showPage('dash'); loadLicenses();
@@ -329,7 +330,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  localStorage.removeItem('vr_token'); localStorage.removeItem('vr_user');
+  localStorage.removeItem('vr_token'); localStorage.removeItem('vr_user'); localStorage.removeItem('vr_objectid');
   authToken = ''; currentUser = '';
   document.getElementById('inp-user').value = '';
   document.getElementById('inp-pass').value = '';

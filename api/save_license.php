@@ -8,6 +8,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendResponse(false, 'Method not allowed', null, 405);
 }
 
+// ── 從 Bearer Token 取得目前登入 USER 的 objectId ────────────────────────────
+function getObjectIdFromToken(PDO $conn): ?string {
+    $headers = getallheaders();
+    $auth    = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    if (!preg_match('/Bearer\s+(.+)/i', $auth, $m)) return null;
+
+    $token = trim($m[1]);
+    $stmt  = $conn->prepare('SELECT objectId FROM `User` WHERE token = ? AND token IS NOT NULL LIMIT 1');
+    $stmt->execute([$token]);
+    $row = $stmt->fetch();
+    return $row ? $row['objectId'] : null;
+}
+
 // ── 產生 serial_code（8 碼小寫英數，去掉易混淆字符）────────────────────────
 function generateSerialCode(int $length = 8): string {
     $chars = 'abcdefghjkmnpqrstuvwxyz23456789'; // 去掉 0,1,i,l,o
@@ -53,9 +66,10 @@ $infinity    = isset($input['infinity']) ? (int)(bool)$input['infinity'] : 0;
 $count       = $infinity ? 0 : max(0, (int)($input['count'] ?? 0));
 $email       = trim($input['email']     ?? '') ?: null;
 $tel         = trim($input['tel']       ?? '') ?: null;
-$parent      = trim($input['parent']    ?? '') ?: null;
 $serial_code = trim($input['serial_code'] ?? '') ?: null;
 $user_name   = trim($input['user_name']);
+$max_devices = isset($input['max_devices']) && $input['max_devices'] !== '' && $input['max_devices'] !== null
+               ? (int)$input['max_devices'] : null;
 
 // email 格式驗證（選填但有值時才驗）
 if ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -84,6 +98,12 @@ if (!empty($input['expiry_date'])) {
 try {
     $conn = getDBConnection();
 
+    // ── 從 token 取得目前登入者的 objectId 作為 parent ──────────────────────
+    $parent = getObjectIdFromToken($conn);
+    if (!$parent) {
+        sendResponse(false, 'Unauthorized：無法識別登入使用者', null, 401);
+    }
+
     // ── 新增 ─────────────────────────────────────────────────────────────────
     if (empty($input['objectId'])) {
 
@@ -105,10 +125,10 @@ try {
 
         $sql = "INSERT INTO License
                     (objectId, active, count, email, tel, infinity,
-                     parent, serial_code, user_name, stage_status, expiry_date)
+                     parent, serial_code, user_name, stage_status, expiry_date, max_devices)
                 VALUES
                     (:objectId, :active, :count, :email, :tel, :infinity,
-                     :parent, :serial_code, :user_name, :stage_status, :expiry_date)";
+                     :parent, :serial_code, :user_name, :stage_status, :expiry_date, :max_devices)";
 
         $stmt = $conn->prepare($sql);
         $stmt->execute([
@@ -123,11 +143,13 @@ try {
             ':user_name'    => $user_name,
             ':stage_status' => $stage_status,
             ':expiry_date'  => $expiry_date,
+            ':max_devices'  => $max_devices,
         ]);
 
         sendResponse(true, 'License 建立成功', [
             'objectId'    => $objectId,
             'serial_code' => $serial_code,
+            'parent'      => $parent,
         ], 201);
 
     // ── 更新 ─────────────────────────────────────────────────────────────────
@@ -162,7 +184,8 @@ try {
                     parent       = :parent,
                     user_name    = :user_name,
                     stage_status = :stage_status,
-                    expiry_date  = :expiry_date
+                    expiry_date  = :expiry_date,
+                    max_devices  = :max_devices
                     " . ($serial_code !== null ? ", serial_code = :serial_code" : "") . "
                 WHERE objectId = :objectId";
 
@@ -177,6 +200,7 @@ try {
             ':user_name'    => $user_name,
             ':stage_status' => $stage_status,
             ':expiry_date'  => $expiry_date,
+            ':max_devices'  => $max_devices,
         ];
         if ($serial_code !== null) {
             $params[':serial_code'] = $serial_code;
@@ -185,7 +209,10 @@ try {
         $stmt = $conn->prepare($sql);
         $stmt->execute($params);
 
-        sendResponse(true, 'License 更新成功', ['objectId' => $objectId]);
+        sendResponse(true, 'License 更新成功', [
+            'objectId' => $objectId,
+            'parent'   => $parent,
+        ]);
     }
 
 } catch (PDOException $e) {

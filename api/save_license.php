@@ -21,6 +21,19 @@ function getObjectIdFromToken(PDO $conn): ?string {
     return $row ? $row['objectId'] : null;
 }
 
+// ── 取得 USER 的次數分配設定 ─────────────────────────────────
+function getUserAllocInfo(PDO $conn, string $objectId): array {
+    $stmt = $conn->prepare(
+        'SELECT can_allocate_infinity, allocatable_count FROM `User` WHERE objectId = ? LIMIT 1'
+    );
+    $stmt->execute([$objectId]);
+    $row = $stmt->fetch();
+    return [
+        'can_inf' => $row ? (bool)$row['can_allocate_infinity'] : false,
+        'alloc'   => $row ? (int)$row['allocatable_count']      : 0,
+    ];
+}
+
 // ── 產生 serial_code（8 碼小寫英數，去掉易混淆字符）────────────────────────
 function generateSerialCode(int $length = 8): string {
     $chars = 'abcdefghjkmnpqrstuvwxyz23456789'; // 去掉 0,1,i,l,o
@@ -120,6 +133,19 @@ try {
             $check->execute([':code' => $serial_code]);
             if ($check->fetchColumn() > 0) {
                 sendResponse(false, '授權碼已存在，請重新輸入', null, 409);
+            }
+        }
+
+        // ── 次數檢查與扣除（新增）──────────────────────────────
+        if (!$infinity) {
+            $userInfo = getUserAllocInfo($conn, $parent);
+            if (!$userInfo['can_inf']) {
+                if ($count > $userInfo['alloc']) {
+                    sendResponse(false, "次數超過可分配上限（剩餘 {$userInfo['alloc']} 次）", null, 422);
+                }
+                // 扣除
+                $conn->prepare('UPDATE `User` SET allocatable_count = allocatable_count - :c WHERE objectId = :id')
+                     ->execute([':c' => $count, ':id' => $parent]);
             }
         }
 

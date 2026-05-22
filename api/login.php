@@ -27,8 +27,11 @@ $pdo->prepare('UPDATE `User` SET token = ? WHERE objectId = ?')
     ->execute([$token, $user['objectId']]);
 
 sendResponse(true, '登入成功', [
-    'token'    => $token,
-    'username' => $user['username'],
-    'objectId' => $user['objectId'],
+    'token'                 => $token,
+    'username'              => $user['username'],
+    'objectId'              => $user['objectId'],
+    'role'                  => $user['role']                   ?? 'admin',
+    'can_allocate_infinity' => (bool)($user['can_allocate_infinity'] ?? 0),
+    'allocatable_count'     => (int)($user['allocatable_count']      ?? 0),
 ]);
 ?>

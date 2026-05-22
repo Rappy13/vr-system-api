@@ -232,6 +232,7 @@ tr.device-panel.open .device-panel-inner{display:block}
       <div class="field" id="count-field" style="display:none">
         <label>使用次數上限</label>
         <input id="f-count" class="fi" type="number" min="0" placeholder="例如：100">
+        <div id="count-hint" style="font-size:.72rem;color:var(--muted);margin-top:.3rem"></div>
       </div>
       <div class="field">
         <label>裝置上限台數</label>
@@ -270,7 +271,7 @@ tr.device-panel.open .device-panel-inner{display:block}
 
 <script>
 const BASE = 'https://vr-system-api.onrender.com';
-let allLicenses = [], currentUser = '', authToken = '', currentRole = '', currentObjectId = '';
+let allLicenses = [], currentUser = '', authToken = '', currentRole = '', currentObjectId = '', currentCanInf = false, currentAllocCount = 0;
 // 記錄已展開的面板及其裝置資料 cache
 const expandedPanels = new Set();
 const deviceCache = {};
@@ -281,6 +282,8 @@ window.addEventListener('load', () => {
   currentUser    = sessionStorage.getItem('vr_user')     || '';
   currentRole    = sessionStorage.getItem('vr_role')     || '';
   currentObjectId = sessionStorage.getItem('vr_objectid') || '';
+  currentCanInf   = sessionStorage.getItem('vr_can_inf') === '1';
+  currentAllocCount = parseInt(sessionStorage.getItem('vr_alloc') || '0');
   if (authToken) {
     document.getElementById('topbar-username').textContent = currentUser;
     showPage('dash');
@@ -335,6 +338,12 @@ async function doLogin() {
       sessionStorage.setItem('vr_user', uname);
       sessionStorage.setItem('vr_objectid', res.data?.objectId || res.objectId || '');
       sessionStorage.setItem('vr_role', res.data?.role || res.role || '');
+      const canInf = res.data?.can_allocate_infinity || res.can_allocate_infinity || false;
+      const alloc  = res.data?.allocatable_count ?? res.allocatable_count ?? 0;
+      sessionStorage.setItem('vr_can_inf', canInf ? '1' : '0');
+      sessionStorage.setItem('vr_alloc', String(alloc));
+      currentCanInf     = !!canInf;
+      currentAllocCount = parseInt(alloc);
       currentRole = res.data?.role || res.role || '';
       currentObjectId = res.data?.objectId || res.objectId || '';
       if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
@@ -347,7 +356,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  sessionStorage.removeItem('vr_token'); sessionStorage.removeItem('vr_user'); sessionStorage.removeItem('vr_objectid'); sessionStorage.removeItem('vr_role');
+  sessionStorage.removeItem('vr_token'); sessionStorage.removeItem('vr_user'); sessionStorage.removeItem('vr_objectid'); sessionStorage.removeItem('vr_role'); sessionStorage.removeItem('vr_can_inf'); sessionStorage.removeItem('vr_alloc');
   authToken = ''; currentUser = '';
   document.getElementById('inp-user').value = '';
   document.getElementById('inp-pass').value = '';
@@ -545,18 +554,58 @@ async function deleteAllDevices(serial_code, objectId, max_devices) {
 function toggleCountField() {
   const isInf = document.getElementById('f-infinity').checked;
   document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
+  if (!isInf && !currentCanInf) {
+    // 顯示剩餘可用次數提示
+    const hint = document.getElementById('count-hint');
+    if (hint) hint.textContent = `可用次數：${currentAllocCount}`;
+    const inp = document.getElementById('f-count');
+    inp.max = currentAllocCount;
+  }
 }
 
 function openModal(lic = null) {
   document.getElementById('modal-error').classList.remove('show');
   document.getElementById('modal-title').textContent = lic ? '編輯 License' : '新增 License';
   document.getElementById('edit-objectId').value = lic?.objectId || '';
+  // 儲存原始 count 供差額計算
+  document.getElementById('edit-objectId').dataset.origCount = (lic?.count != null) ? lic.count : '0';
+
   document.getElementById('f-username').value    = lic?.user_name || '';
   document.getElementById('f-email').value       = lic?.email || '';
   document.getElementById('f-maxdevices').value  = lic?.max_devices != null ? lic.max_devices : '';
-  const isInf = lic ? (lic.infinity === true || lic.infinity === 1) : true;
-  document.getElementById('f-infinity').checked  = isInf;
-  document.getElementById('f-count').value       = (!isInf && lic?.count != null) ? lic.count : '';
+
+  const infToggle = document.getElementById('f-infinity');
+  const infWrap   = infToggle.closest('.toggle-wrap') || infToggle.closest('.field');
+
+  if (!currentCanInf) {
+    // USER 無限分配權限關閉 → infinity toggle 鎖定為 off
+    infToggle.checked  = false;
+    infToggle.disabled = true;
+    if (infWrap) infWrap.style.opacity = '.45';
+  } else {
+    infToggle.disabled = false;
+    if (infWrap) infWrap.style.opacity = '';
+    const isInf = lic ? (lic.infinity === true || lic.infinity === 1) : true;
+    infToggle.checked = isInf;
+  }
+
+  const isInf = infToggle.checked;
+  const oldCount = lic?.count != null ? lic.count : 0;
+  document.getElementById('f-count').value = (!isInf && lic?.count != null) ? lic.count : '';
+
+  if (!currentCanInf) {
+    // 計算這張 License 原本佔用的次數，加回後才是真正可用上限
+    const usedByThis = (lic && !isInf) ? oldCount : 0;
+    const maxAvail   = currentAllocCount + usedByThis;
+    document.getElementById('f-count').max = maxAvail;
+    const hint = document.getElementById('count-hint');
+    if (hint) hint.textContent = `可分配次數：${currentAllocCount}（本序號已用 ${usedByThis}，本次最多可填 ${maxAvail}）`;
+  } else {
+    document.getElementById('f-count').removeAttribute('max');
+    const hint = document.getElementById('count-hint');
+    if (hint) hint.textContent = '';
+  }
+
   document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
   document.getElementById('modal-overlay').classList.add('show');
   setTimeout(() => document.getElementById('f-username').focus(), 100);
@@ -566,6 +615,7 @@ document.getElementById('modal-overlay').addEventListener('click', e => { if (e.
 
 async function saveLicense() {
   const objectId   = document.getElementById('edit-objectId').value;
+  const origCount  = parseInt(document.getElementById('edit-objectId').dataset.origCount || '0');
   const user_name  = document.getElementById('f-username').value.trim();
   const email      = document.getElementById('f-email').value.trim();
   const infinity   = document.getElementById('f-infinity').checked;
@@ -575,7 +625,18 @@ async function saveLicense() {
   const btn        = document.getElementById('btn-save');
   errEl.classList.remove('show');
   if (!user_name) { showErr(errEl, '請填寫單位名稱'); return; }
-  if (!infinity && (countVal === '' || countVal === null || parseInt(countVal) < 0)) { showErr(errEl, '請填寫使用次數上限（0 或以上）'); return; }
+  if (!infinity && (countVal === '' || countVal === null || parseInt(countVal) < 0)) {
+    showErr(errEl, '請填寫使用次數上限（0 或以上）'); return;
+  }
+  // 若 USER 沒有無限次數，驗證不超過可分配上限
+  if (!currentCanInf && !infinity) {
+    const newCount = parseInt(countVal);
+    const usedByThis = objectId ? origCount : 0;
+    const maxAvail   = currentAllocCount + usedByThis;
+    if (newCount > maxAvail) {
+      showErr(errEl, `次數超過可分配上限（最多可填 ${maxAvail}）`); return;
+    }
+  }
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
   try {
     const payload = { user_name, infinity: infinity ? 1 : 0, active: 1 };
@@ -587,6 +648,14 @@ async function saveLicense() {
     const url = objectId ? `${BASE}/api/update_license.php` : `${BASE}/api/save_license.php`;
     const res = await apiPost(url, payload);
     if (res.success) {
+      // 更新本地 allocatable_count 顯示（後端也會更新，但先同步前端）
+      if (!currentCanInf && !infinity) {
+        const newCount   = parseInt(countVal);
+        const usedByThis = objectId ? origCount : 0;
+        const diff       = newCount - usedByThis; // 正 = 多用，負 = 退回
+        currentAllocCount -= diff;
+        sessionStorage.setItem('vr_alloc', String(currentAllocCount));
+      }
       toast(objectId ? '✔ 授權資料已更新' : '✔ 新增授權成功', 'ok');
       closeModal(); await loadLicenses();
     } else { showErr(errEl, res.message || '儲存失敗'); }

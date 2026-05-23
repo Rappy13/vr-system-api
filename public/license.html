@@ -287,6 +287,7 @@ window.addEventListener('load', () => {
   currentAllocCount = parseInt(sessionStorage.getItem('vr_alloc') || '0');
   if (authToken) {
     document.getElementById('topbar-username').textContent = currentUser;
+    if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
     showPage('dash');
     loadLicenses();
   }

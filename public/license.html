@@ -182,6 +182,7 @@ tr.device-panel.open .device-panel-inner{display:block}
     <div class="topbar-brand">FireAway XR <span>管理系統</span></div>
     <div class="topbar-user">
       歡迎，<strong id="topbar-username">—</strong>
+      <span id="topbar-alloc" style="font-size:.75rem;color:var(--muted);background:var(--panel);border:1px solid var(--border);padding:.2rem .65rem;border-radius:4px"></span>
       <button class="btn-topbar" id="btn-user-mgmt" style="display:none" onclick="openUserModal()">👥 使用者管理</button>
       <a class="btn-topbar" href="https://rappy13.github.io/vr-system-api/public/license_manual.html" target="_blank" rel="noopener">📖 使用教學</a>
       <button class="btn-topbar" onclick="openPwdModal()">⚙ 帳號設定</button>
@@ -288,6 +289,7 @@ window.addEventListener('load', () => {
   if (authToken) {
     document.getElementById('topbar-username').textContent = currentUser;
     if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
+    updateAllocDisplay();
     showPage('dash');
     loadLicenses();
   }
@@ -299,6 +301,17 @@ document.addEventListener('keydown', e => {
 // ── Helpers ───────────────────────────────────────────────────
 function showPage(n) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById('page-' + n).classList.add('active'); }
 function showLoading(t = '載入中…') { document.getElementById('loading-text').textContent = t; document.getElementById('loading').classList.add('show'); }
+function updateAllocDisplay() {
+  const el = document.getElementById('topbar-alloc');
+  if (!el) return;
+  if (currentCanInf) {
+    el.textContent = '可分配次數：無限制';
+    el.style.color = 'var(--warn)';
+  } else {
+    el.textContent = `可分配次數：${currentAllocCount}`;
+    el.style.color = currentAllocCount <= 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+}
 function hideLoading() { document.getElementById('loading').classList.remove('show'); }
 function toast(msg, type = '') { const el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => el.classList.remove('show'), 2800); }
 function showErr(el, msg) { el.textContent = '⚠ ' + msg; el.classList.add('show'); }
@@ -351,6 +364,7 @@ async function doLogin() {
       if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
       currentUser = uname;
       document.getElementById('topbar-username').textContent = currentUser;
+      updateAllocDisplay();
       showPage('dash'); loadLicenses();
     } else { showErr(errEl, res.message || '登入失敗'); }
   } catch (e) { showErr(errEl, '連線失敗，請稍後再試'); }
@@ -669,6 +683,7 @@ async function saveLicense() {
         const diff       = newCount - usedByThis; // 正 = 多用，負 = 退回
         currentAllocCount -= diff;
         sessionStorage.setItem('vr_alloc', String(currentAllocCount));
+        updateAllocDisplay();
       }
       toast(objectId ? '✔ 授權資料已更新' : '✔ 新增授權成功', 'ok');
       closeModal(); await loadLicenses();

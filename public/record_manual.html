@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAway XR 訓練紀錄系統 — 使用說明</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e17;
+  --surface: #111827;
+  --panel:   #161d2e;
+  --border:  #1e2d45;
+  --accent:  #00d4ff;
+  --success: #22d3a0;
+  --danger:  #ef4444;
+  --warn:    #f59e0b;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --glow:    0 0 24px rgba(0,212,255,.2);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  min-height: 100vh; line-height: 1.7;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+  background-size: 40px 40px; pointer-events: none; z-index: 0;
+}
+
+/* ── Layout ── */
+.layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px; flex-shrink: 0;
+  background: var(--panel); border-right: 1px solid var(--border);
+  padding: 2rem 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+}
+.sidebar-logo {
+  display: flex; align-items: center; gap: .75rem;
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.sidebar-logo img { width: 32px; height: 32px; border-radius: 8px; }
+.sidebar-logo-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  color: var(--accent); letter-spacing: 1px; text-transform: uppercase;
+}
+.sidebar-logo-sub { font-size: .68rem; color: var(--muted); letter-spacing: .5px; }
+.nav-section-title {
+  font-size: .65rem; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted);
+  padding: .6rem 1.5rem .3rem;
+}
+.nav-link {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem 1.5rem; font-size: .85rem; color: var(--muted);
+  text-decoration: none; transition: color .15s, background .15s;
+  border-left: 2px solid transparent;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.nav-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,255,.05); }
+.nav-icon { font-size: .9rem; width: 18px; text-align: center; }
+
+/* ── Main content ── */
+.main {
+  flex: 1; padding: 3rem 3.5rem; max-width: 860px;
+  overflow-x: hidden;
+}
+
+/* ── Hero ── */
+.hero {
+  background: linear-gradient(135deg, rgba(0,212,255,.08), rgba(0,136,170,.04));
+  border: 1px solid rgba(0,212,255,.15);
+  border-radius: 16px; padding: 2.5rem;
+  margin-bottom: 3rem;
+  display: flex; align-items: center; gap: 2rem;
+}
+.hero-icon {
+  width: 72px; height: 72px; border-radius: 16px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), #0088aa);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--glow);
+}
+.hero-icon img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.hero-title { font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+.hero-sub { font-size: .9rem; color: var(--muted); margin-top: .3rem; line-height: 1.6; }
+
+/* ── Section ── */
+.section { margin-bottom: 3.5rem; scroll-margin-top: 2rem; }
+.section-header {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: 1.25rem; padding-bottom: .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-num {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #0088aa);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif; font-size: .85rem; font-weight: 700; color: #000;
+  flex-shrink: 0;
+}
+.section-title { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+
+/* ── Step cards ── */
+.steps { display: flex; flex-direction: column; gap: 1rem; }
+.step {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.2rem 1.5rem;
+  display: flex; gap: 1.2rem; align-items: flex-start;
+  transition: border-color .2s;
+}
+.step:hover { border-color: rgba(0,212,255,.25); }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  border: 1.5px solid var(--accent); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif; font-size: .85rem; font-weight: 700;
+  margin-top: .05rem;
+}
+.step-body {}
+.step-title { font-size: .95rem; font-weight: 600; margin-bottom: .3rem; }
+.step-desc { font-size: .85rem; color: var(--muted); line-height: 1.65; }
+.step-desc strong { color: var(--text); font-weight: 600; }
+
+/* ── UI mockup ── */
+.ui-mock {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.2rem 1.5rem;
+  margin: .75rem 0; font-size: .85rem;
+}
+.mock-label {
+  font-size: .68rem; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: .4rem;
+}
+.mock-input {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: .55rem .9rem; color: var(--muted);
+  font-size: .85rem; width: 100%; font-family: inherit;
+}
+.mock-toggle {
+  display: flex; gap: .5rem; margin-bottom: .6rem;
+}
+.mock-btn {
+  flex: 1; padding: .35rem; font-size: .72rem; font-weight: 600;
+  text-align: center; border-radius: 5px; border: 1px solid;
+}
+.mock-btn.on  { background: rgba(0,212,255,.1); border-color: var(--accent); color: var(--accent); }
+.mock-btn.off { background: transparent; border-color: var(--border); color: var(--muted); }
+.mock-date-row { display: flex; align-items: center; gap: .5rem; }
+.mock-date-row .mock-input { flex: 1; }
+.mock-sep { color: var(--muted); font-size: .8rem; }
+.mock-query-btn {
+  width: 100%; padding: .65rem; margin-top: .75rem;
+  background: linear-gradient(135deg, var(--accent), #0099cc);
+  color: #000; font-weight: 700; border-radius: 6px;
+  text-align: center; font-size: .9rem; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
+}
+
+/* ── Info cards ── */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+.info-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1rem 1.2rem;
+}
+.info-card-title {
+  font-size: .78rem; font-weight: 600; color: var(--accent);
+  letter-spacing: .5px; margin-bottom: .4rem;
+  display: flex; align-items: center; gap: .4rem;
+}
+.info-card-body { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+.info-card-body strong { color: var(--text); }
+
+/* ── Table demo ── */
+.table-demo { width: 100%; border-collapse: collapse; font-size: .78rem; overflow: hidden; border-radius: 8px; border: 1px solid var(--border); }
+.table-demo th { background: var(--panel); padding: .55rem .8rem; text-align: center; font-size: .65rem; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+.table-demo td { padding: .55rem .8rem; text-align: center; border-bottom: 1px solid var(--border); }
+.table-demo tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; padding: .15rem .45rem; border-radius: 3px; font-size: .7rem; font-weight: 600; }
+.b-pass   { background: rgba(34,211,160,.15); color: var(--success); }
+.b-fail   { background: rgba(239,68,68,.15); color: var(--danger); }
+.b-muted  { background: rgba(100,116,139,.15); color: var(--muted); }
+.b-gold   { color: #fbbf24; font-weight: 700; }
+.b-silver { color: #94a3b8; font-weight: 700; }
+.b-bronze { color: #cd7f32; font-weight: 700; }
+.b-warn   { background: rgba(245,158,11,.15); color: var(--warn); }
+
+/* ── Scene chips demo ── */
+.chip-demo { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .75rem; }
+.chip {
+  padding: .25rem .7rem; border-radius: 20px; font-size: .75rem;
+  border: 1px solid; cursor: default; white-space: nowrap;
+}
+.chip.on  { background: rgba(0,212,255,.12); border-color: var(--accent); color: var(--accent); }
+.chip.off { background: transparent; border-color: var(--border); color: var(--muted); }
+
+/* ── Callout ── */
+.callout {
+  border-radius: 10px; padding: 1rem 1.2rem;
+  display: flex; gap: .75rem; align-items: flex-start;
+  font-size: .85rem; line-height: 1.6; margin: 1rem 0;
+}
+.callout.info  { background: rgba(0,212,255,.06); border: 1px solid rgba(0,212,255,.2); }
+.callout.warn  { background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.2); color: #fde68a; }
+.callout.tip   { background: rgba(34,211,160,.06); border: 1px solid rgba(34,211,160,.2); color: #6ee7b7; }
+.callout-icon  { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+.callout-body  { color: var(--text); }
+.callout-body strong { font-weight: 600; }
+
+/* ── Rating table ── */
+.rating-list { display: flex; flex-direction: column; gap: .6rem; margin-top: .75rem; }
+.rating-row  { display: flex; align-items: center; gap: .75rem; font-size: .85rem; }
+.rating-badge { min-width: 140px; font-weight: 600; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { padding: 2rem 1.5rem; }
+  .info-grid { grid-template-columns: 1fr; }
+  .hero { flex-direction: column; gap: 1rem; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png" alt="icon">
+    <div>
+      <div class="sidebar-logo-text">FireAway XR</div>
+      <div class="sidebar-logo-sub">訓練紀錄系統說明</div>
+    </div>
+  </div>
+  <div class="nav-section-title">使用指南</div>
+  <a class="nav-link active" href="#intro"><span class="nav-icon">📖</span>系統簡介</a>
+  <a class="nav-link" href="#search"><span class="nav-icon">🔍</span>查詢訓練紀錄</a>
+  <a class="nav-link" href="#result"><span class="nav-icon">📊</span>查詢結果頁面</a>
+  <a class="nav-link" href="#scene-filter"><span class="nav-icon">🎯</span>場景篩選</a>
+  <a class="nav-link" href="#columns"><span class="nav-icon">📋</span>欄位說明</a>
+  <a class="nav-link" href="#rating"><span class="nav-icon">🏅</span>綜合評定說明</a>
+  <a class="nav-link" href="#export"><span class="nav-icon">⬇</span>匯出 CSV</a>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-icon">
+      <img src="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png" alt="icon">
+    </div>
+    <div>
+      <div class="hero-title">FireAway XR 訓練紀錄系統</div>
+      <div class="hero-sub">本說明文件介紹如何使用訓練紀錄查詢系統，包含查詢方式、結果頁面各功能操作，以及欄位與評分的詳細說明。</div>
+    </div>
+  </div>
+
+  <!-- 1. 系統簡介 -->
+  <section class="section" id="intro">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title">系統簡介</div>
+    </div>
+    <p style="font-size:.9rem;color:var(--muted);line-height:1.8;margin-bottom:1rem">
+      訓練紀錄查詢系統可讓您透過 <strong style="color:var(--text)">Email</strong> 搜尋指定使用者在特定日期或日期區間內的所有 VR 消防訓練紀錄，並以試算表方式呈現各項評估結果。
+    </p>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-title">🔍 查詢方式</div>
+        <div class="info-card-body">輸入使用者 <strong>Email</strong> 與訓練日期，即可撈取對應訓練資料。</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">📅 日期模式</div>
+        <div class="info-card-body">支援<strong>單日</strong>與<strong>日期區間</strong>兩種搜尋模式。</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">🎯 場景篩選</div>
+        <div class="info-card-body">查詢結果可依照<strong>場景</strong>即時篩選，快速聚焦特定訓練項目。</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">⬇ 匯出功能</div>
+        <div class="info-card-body">可將目前篩選結果匯出為 <strong>CSV</strong>，方便後續整理與報告。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 查詢 -->
+  <section class="section" id="search">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">查詢訓練紀錄</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">輸入使用者 Email</div>
+          <div class="step-desc">在第一個欄位輸入使用者的 <strong>Email 帳號</strong>，系統將自動查找對應的使用者資料。</div>
+          <div class="ui-mock" style="margin-top:.75rem">
+            <div class="mock-label">Email</div>
+            <div class="mock-input">student@example.com</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">選擇日期模式</div>
+          <div class="step-desc">點選「<strong>單日</strong>」或「<strong>日期區間</strong>」切換搜尋模式。</div>
+          <div class="ui-mock" style="margin-top:.75rem">
+            <div class="mock-label">訓練日期</div>
+            <div class="mock-toggle">
+              <div class="mock-btn on">單日</div>
+              <div class="mock-btn off">日期區間</div>
+            </div>
+            <div class="mock-input">2026-05-11</div>
+          </div>
+          <div class="callout info" style="margin-top:.75rem">
+            <span class="callout-icon">💡</span>
+            <div class="callout-body"><strong>日期區間模式</strong>：切換後會出現起始日與結束日兩個輸入框，可查詢跨多天的訓練資料。起始日期不可晚於結束日期。</div>
+          </div>
+          <div class="ui-mock">
+            <div class="mock-label">訓練日期</div>
+            <div class="mock-toggle">
+              <div class="mock-btn off">單日</div>
+              <div class="mock-btn on">日期區間</div>
+            </div>
+            <div class="mock-date-row">
+              <div class="mock-input">2026-05-01</div>
+              <span class="mock-sep">～</span>
+              <div class="mock-input">2026-05-11</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">點擊查詢</div>
+          <div class="step-desc">按下「<strong>查詢訓練紀錄</strong>」按鈕，系統會逐步載入並分析資料，進度會即時顯示在下方。</div>
+          <div class="ui-mock" style="margin-top:.75rem">
+            <div class="mock-query-btn">查詢訓練紀錄</div>
+          </div>
+          <div class="callout warn" style="margin-top:.75rem">
+            <span class="callout-icon">⚠</span>
+            <div class="callout-body">若資料筆數較多，分析需要一些時間，請耐心等候，勿重複點擊查詢按鈕。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 查詢結果 -->
+  <section class="section" id="result">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div class="section-title">查詢結果頁面</div>
+    </div>
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">查詢完成後自動進入結果頁面，頂部資訊列顯示使用者名稱、查詢日期與符合條件的筆數。</p>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-title">← 返回查詢</div>
+        <div class="info-card-body">返回查詢頁，可重新輸入條件查詢其他使用者。</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">⬇ 匯出 CSV</div>
+        <div class="info-card-body">將目前<strong>有勾選的場景</strong>資料匯出為 CSV 檔案。</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">筆數顯示</div>
+        <div class="info-card-body">顯示目前<strong>可見</strong>的資料筆數，會隨場景篩選即時更新。</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">多次操作排序</div>
+        <div class="info-card-body">同一次進入場景若有多次操作，由<strong>最後一次往前</strong>排列，時間閱讀更直觀。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 場景篩選 -->
+  <section class="section" id="scene-filter">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">場景篩選</div>
+    </div>
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">位於資訊列與表格之間，可快速篩選要顯示的場景種類。</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">①</div>
+        <div class="step-body">
+          <div class="step-title">收合 / 展開</div>
+          <div class="step-desc">點擊「<strong>場景篩選</strong>」整列標題即可收合或展開，右側箭頭會跟著轉向。每次新查詢預設為展開狀態。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">②</div>
+        <div class="step-body">
+          <div class="step-title">場景 Chip 切換</div>
+          <div class="step-desc">每個場景以 Chip 按鈕呈現，<strong>藍色亮起</strong>表示目前顯示中，<strong>灰色</strong>表示已隱藏。點擊即時切換，下方表格立即更新。只會顯示此次查詢結果中實際出現的場景。</div>
+          <div class="chip-demo">
+            <span class="chip on">單層油盤</span>
+            <span class="chip on">雙層油盤</span>
+            <span class="chip off">電器火災</span>
+            <span class="chip on">紙箱火災</span>
+            <span class="chip off">機車火災</span>
+            <span class="chip on">B類油桶火災</span>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">③</div>
+        <div class="step-body">
+          <div class="step-title">全選 / 全不選</div>
+          <div class="step-desc">點擊「<strong>全選</strong>」一次勾選所有場景；「<strong>全不選</strong>」一次取消全部，可快速進行批次操作。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">④</div>
+        <div class="step-body">
+          <div class="step-title">摘要文字</div>
+          <div class="step-desc">標題列右側顯示目前狀態，全部勾選時顯示「<strong>全部顯示</strong>」，部分勾選時顯示「<strong>顯示 N / M 個場景</strong>」。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 欄位說明 -->
+  <section class="section" id="columns">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title">欄位說明</div>
+    </div>
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:1.25rem">試算表共分為四個群組，以下分群說明各欄位意義。</p>
+
+    <!-- 基本資訊 -->
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:.75rem">基本資訊</div>
+      <table class="table-demo">
+        <thead><tr><th>欄位</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td style="text-align:left;font-weight:600">時間</td><td style="text-align:left;color:var(--muted)">該次操作的實際時間，優先顯示遊戲內記錄的精確時間，若無則顯示資料儲存時間</td></tr>
+          <tr><td style="text-align:left;font-weight:600">學員代碼</td><td style="text-align:left;color:var(--muted)">該次訓練的學員唯一識別碼</td></tr>
+          <tr><td style="text-align:left;font-weight:600">場景</td><td style="text-align:left;color:var(--muted)">訓練使用的場景名稱，共 15 種場景</td></tr>
+          <tr><td style="text-align:left;font-weight:600">操作次數</td><td style="text-align:left;color:var(--muted)">同一場景內第幾次操作（含試噴次數）</td></tr>
+          <tr><td style="text-align:left;font-weight:600">選擇滅火器</td><td style="text-align:left;color:var(--muted)">學員選用的滅火器種類</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 操作評估 -->
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,165,0,.8);margin-bottom:.75rem">操作評估</div>
+      <table class="table-demo">
+        <thead><tr><th>欄位</th><th>說明</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td style="text-align:left;font-weight:600">20秒內試噴</td><td style="text-align:left;color:var(--muted)">是否在開始後 20 秒內完成試噴動作</td><td style="color:var(--muted)">全場景適用</td></tr>
+          <tr><td style="text-align:left;font-weight:600">有效射程外試噴</td><td style="text-align:left;color:var(--muted)">試噴時是否站在有效射程範圍外</td><td style="color:var(--warn)">場景 5–8 不適用</td></tr>
+          <tr><td style="text-align:left;font-weight:600">試噴距離</td><td style="text-align:left;color:var(--muted)">試噴時與火源的距離（公尺）</td><td style="color:var(--warn)">場景 5–8 不適用</td></tr>
+          <tr><td style="text-align:left;font-weight:600">最大射程開始滅火</td><td style="text-align:left;color:var(--muted)">是否在最大有效射程處開始正式滅火</td><td style="color:var(--warn)">場景 5–8 不適用</td></tr>
+          <tr><td style="text-align:left;font-weight:600">開始滅火距離</td><td style="text-align:left;color:var(--muted)">開始正式滅火時與火源的距離（公尺）</td><td style="color:var(--warn)">場景 5–8 不適用</td></tr>
+          <tr><td style="text-align:left;font-weight:600">油不濺出(全程)</td><td style="text-align:left;color:var(--muted)">滅火全程是否無油液濺出</td><td style="color:var(--danger)">場景 5 以上不適用</td></tr>
+          <tr><td style="text-align:left;font-weight:600">噴射無斷續</td><td style="text-align:left;color:var(--muted)">噴射過程是否連續不中斷</td><td style="color:var(--muted)">全場景適用</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info" style="margin-top:.75rem">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">不適用的欄位在該場景下會顯示「<strong>—</strong>」，並不代表未通過。</div>
+      </div>
+    </div>
+
+    <!-- 滅火結果 -->
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(100,116,139,.8);margin-bottom:.75rem">滅火結果</div>
+      <table class="table-demo">
+        <thead><tr><th>欄位</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td style="text-align:left;font-weight:600">滅火成功</td><td style="text-align:left;color:var(--muted)">該次操作是否成功將火撲滅</td></tr>
+          <tr><td style="text-align:left;font-weight:600">完成時間</td><td style="text-align:left;color:var(--muted)">從開始到滅火完成所花費的秒數</td></tr>
+          <tr><td style="text-align:left;font-weight:600">特殊失誤</td><td style="text-align:left;color:var(--muted)">是否有特殊錯誤操作（如危險動作）</td></tr>
+          <tr><td style="text-align:left;font-weight:600">其他操作細項</td><td style="text-align:left;color:var(--muted)">系統補充的其他操作備註</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 6. 評分說明 -->
+  <section class="section" id="rating">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div class="section-title">綜合評定說明</div>
+    </div>
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:1.25rem">每次操作的綜合評定依照完成品質與速度分為以下等級：</p>
+
+    <div class="rating-list">
+      <div class="rating-row">
+        <span class="rating-badge" style="color:#fbbf24;font-weight:700">🥇 金牌高手 成功</span>
+        <span style="font-size:.85rem;color:var(--muted)">所有操作評估全部通過，且完成時間達到最快標準</span>
+      </div>
+      <div class="rating-row">
+        <span class="rating-badge" style="color:#94a3b8;font-weight:700">🥈 銀牌高手 成功</span>
+        <span style="font-size:.85rem;color:var(--muted)">所有操作評估全部通過，完成時間達到一般標準</span>
+      </div>
+      <div class="rating-row">
+        <span class="rating-badge" style="color:#cd7f32;font-weight:700">🥉 銅牌高手 成功</span>
+        <span style="font-size:.85rem;color:var(--muted)">所有操作評估全部通過，但完成時間較慢</span>
+      </div>
+      <div class="rating-row">
+        <span class="rating-badge"><span class="badge b-warn">70分的僥倖成功</span></span>
+        <span style="font-size:.85rem;color:var(--muted)">成功滅火，但部分操作評估未達標準</span>
+      </div>
+      <div class="rating-row">
+        <span class="rating-badge"><span class="badge b-muted">60分的僥倖成功</span></span>
+        <span style="font-size:.85rem;color:var(--muted)">成功滅火，但多項操作評估未達標準</span>
+      </div>
+      <div class="rating-row">
+        <span class="rating-badge"><span class="badge b-fail">失敗</span></span>
+        <span style="font-size:.85rem;color:var(--muted)">未能成功撲滅火源</span>
+      </div>
+    </div>
+
+    <div class="callout tip" style="margin-top:1.25rem">
+      <span class="callout-icon">✔</span>
+      <div class="callout-body"><strong>金牌評定條件</strong>：20秒內試噴、正確距離試噴、在最大射程開始滅火、油不濺出（適用場景）、噴射連續無斷續、成功滅火，六項全數通過且無特殊失誤，再依完成時間判定金銀銅。</div>
+    </div>
+  </section>
+
+  <!-- 7. 匯出 CSV -->
+  <section class="section" id="export">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <div class="section-title">匯出 CSV</div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">設定場景篩選</div>
+          <div class="step-desc">先在場景篩選列勾選想要匯出的場景，<strong>只有勾選中的場景資料</strong>才會被匯出。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">點擊「⬇ 匯出 CSV」</div>
+          <div class="step-desc">按下右上角的匯出按鈕，瀏覽器會自動下載 CSV 檔案。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">開啟檔案</div>
+          <div class="step-desc">檔案命名格式為 <strong>VR訓練_使用者名稱_日期.csv</strong>，以 UTF-8 BOM 編碼儲存，可直接用 Excel 或 Google 試算表開啟，中文顯示正常。</div>
+        </div>
+      </div>
+    </div>
+    <div class="callout info" style="margin-top:1rem">
+      <span class="callout-icon">💡</span>
+      <div class="callout-body">CSV 內容包含所有欄位，布林值（通過/不通過）以文字呈現，「—」代表該場景不適用此評估項目。</div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('.section');
+const navLinks  = document.querySelectorAll('.nav-link');
+const observer  = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { threshold: 0.4 });
+sections.forEach(s => observer.observe(s));
+
+// Smooth scroll
+navLinks.forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>

@@ -268,6 +268,11 @@
       </div>
     </div>
     <button id="btn-query" class="btn-query" onclick="doQuery()">查詢訓練紀錄</button>
+    <a href="https://rappy13.github.io/vr-system-api/public/record_manual.html" target="_blank"
+       style="display:block;text-align:center;margin-top:.85rem;font-size:.8rem;color:var(--muted);text-decoration:none;transition:color .2s"
+       onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+      📖 使用說明
+    </a>
     <div id="error-msg" class="error-msg"></div>
     <div id="progress-log" class="progress-log"></div>
   </div>
@@ -283,6 +288,12 @@
       <div class="meta-chip">共 <span id="meta-count">0</span> 筆紀錄</div>
     </div>
     <button class="btn-export" onclick="exportCSV()">⬇ 匯出 CSV</button>
+    <a href="https://rappy13.github.io/vr-system-api/public/record_manual.html" target="_blank"
+       style="display:inline-flex;align-items:center;gap:.35rem;padding:.45rem 1rem;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.85rem;text-decoration:none;transition:border-color .2s,color .2s"
+       onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+       onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+      📖 使用說明
+    </a>
   </div>
 
   <!-- Scene filter -->

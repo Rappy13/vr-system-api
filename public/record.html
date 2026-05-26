@@ -771,8 +771,10 @@ function exportCSV() {
   const headers = ['#','時間','學員代碼','場景','操作次數','選擇滅火器',
     '20秒內試噴','有效射程外試噴','試噴距離(m)','最大射程開始滅火','開始滅火距離(m)',
     '油不濺出(全程)','噴射無斷續','滅火成功','完成時間','特殊失誤','其他操作細項','綜合評定'];
-  // Only export records whose scene is currently active
-  const filtered = lastData.records.filter(r => activeScenes.has(r.scene));
+  // Only export records whose scene is currently active, sorted by time ascending
+  const filtered = lastData.records
+    .filter(r => activeScenes.has(r.scene))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const rows = filtered.map((r, i) => [
     i+1, r.date, r.player_id, r.scene, '第'+(r.sub_index != null ? r.sub_index : 1)+'次', r.select_fe,
     boolStr(r.trial_in_20s), boolStr(r.trial_outside), r.trial_distance,

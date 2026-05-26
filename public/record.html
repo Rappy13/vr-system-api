@@ -322,7 +322,10 @@
         </tr>
         <tr>
           <th>#</th>
-          <th class="accent">時間</th>
+          <th class="accent" id="th-time" onclick="toggleTimeSort()"
+              style="cursor:pointer;user-select:none;white-space:nowrap">
+            時間 <span id="sort-arrow" style="font-size:.65rem;opacity:.7">↑</span>
+          </th>
           <th class="accent">學員代碼</th>
           <th>場景</th>
           <th>操作次數</th>
@@ -669,13 +672,29 @@ function applySceneFilter() {
   document.getElementById('meta-count').textContent = visible;
 }
 
-function renderTable() {
+// ── Time sort state ───────────────────────────────────────────────────────────
+let timeSortAsc = true; // 預設正序（早→晚）
+
+function toggleTimeSort() {
+  timeSortAsc = !timeSortAsc;
+  document.getElementById('sort-arrow').textContent = timeSortAsc ? '↑' : '↓';
+  renderTable(false); // re-render without resetting filter
+}
+
+function renderTable(resetFilter = true) {
   document.getElementById('meta-serial').textContent = lastData.display_name;
   document.getElementById('meta-date').textContent   = lastData.date;
-  document.getElementById('meta-count').textContent  = lastData.records.length;
+
+  // Sort records by date string
+  const sorted = [...lastData.records].sort((a, b) => {
+    const ta = a.date || '';
+    const tb = b.date || '';
+    return timeSortAsc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+  });
+
   const tbody = document.getElementById('result-body');
   tbody.innerHTML = '';
-  lastData.records.forEach((r, i) => {
+  sorted.forEach((r, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
@@ -699,8 +718,15 @@ function renderTable() {
     `;
     tbody.appendChild(tr);
   });
-  // init filter after table is built
-  initSceneFilter();
+
+  // init or re-apply filter
+  if (resetFilter) {
+    timeSortAsc = true;
+    document.getElementById('sort-arrow').textContent = '↑';
+    initSceneFilter();
+  } else {
+    applySceneFilter();
+  }
 }
 
 function esc(v) {

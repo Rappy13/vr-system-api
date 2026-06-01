@@ -639,7 +639,7 @@ function openModal(lic = null) {
   setTimeout(() => document.getElementById('f-username').focus(), 100);
 }
 function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
-document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+// modal-overlay: 點擊背景不關閉
 
 async function saveLicense() {
   const objectId   = document.getElementById('edit-objectId').value;
@@ -713,7 +713,7 @@ function openPwdModal() {
   setTimeout(() => document.getElementById('pwd-old').focus(), 100);
 }
 function closePwdModal() { document.getElementById('pwd-modal-overlay').classList.remove('show'); }
-document.getElementById('pwd-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closePwdModal(); });
+// pwd-modal-overlay: 點擊背景不關閉
 
 async function saveAccount() {
   const newUsername = document.getElementById('pwd-username').value.trim();
@@ -764,7 +764,7 @@ async function openUserModal() {
   }
 }
 function closeUserModal() { document.getElementById('user-modal-overlay').classList.remove('show'); }
-document.getElementById('user-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeUserModal(); });
+// user-modal-overlay: 點擊背景不關閉
 
 function renderUserTable(users) {
   if (!users.length) {
@@ -805,7 +805,7 @@ function openEditUserModal(u) {
   document.getElementById('edit-user-modal-overlay').classList.add('show');
 }
 function closeEditUserModal() { document.getElementById('edit-user-modal-overlay').classList.remove('show'); }
-document.getElementById('edit-user-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeEditUserModal(); });
+// edit-user-modal-overlay: 點擊背景不關閉
 
 async function saveEditUser() {
   const objectId = document.getElementById('eu-objectId').value;
@@ -851,7 +851,7 @@ function openCreateUserModal() {
   setTimeout(() => document.getElementById('cu-username').focus(), 100);
 }
 function closeCreateUserModal() { document.getElementById('create-user-modal-overlay').classList.remove('show'); }
-document.getElementById('create-user-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeCreateUserModal(); });
+// create-user-modal-overlay: 點擊背景不關閉
 
 async function saveCreateUser() {
   const username = document.getElementById('cu-username').value.trim();

@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAway XR License 管理系統</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f3ee;--surface:#fff;--panel:#faf9f6;--border:#e2ddd6;--accent:#c84b31;--accent2:#2d5a3d;--text:#1a1714;--muted:#7a7369;--danger:#c84b31;--warn:#b5741a;--shadow:0 2px 12px rgba(26,23,20,.08);--shadow-lg:0 8px 40px rgba(26,23,20,.14)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8b89a' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;z-index:0}
+.page{display:none;min-height:100vh}.page.active{display:flex}
+/* ── Login ── */
+#page-login{align-items:center;justify-content:center;padding:2rem;position:relative;z-index:1}
+.login-wrap{display:grid;grid-template-columns:1fr 1fr;max-width:840px;width:100%;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;animation:slideUp .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.login-brand{background:var(--text);padding:3rem;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.login-brand::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border:40px solid rgba(200,75,49,.25);border-radius:50%}
+.login-brand::after{content:'';position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;border:30px solid rgba(45,90,61,.2);border-radius:50%}
+.brand-badge{display:inline-flex;align-items:center;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:.4rem .9rem;border-radius:4px;width:fit-content}
+.brand-title{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.1;color:#fff;position:relative;z-index:1}
+.brand-title em{color:var(--accent);font-style:normal}
+.brand-sub{color:rgba(255,255,255,.45);font-size:.8rem;line-height:1.6;position:relative;z-index:1}
+.login-form-wrap{padding:3rem}
+.form-title{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:.4rem}
+.form-sub{font-size:.8rem;color:var(--muted);margin-bottom:2rem}
+.field{margin-bottom:1.2rem}
+.field label{display:block;font-size:.72rem;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem}
+.fi{width:100%;padding:.75rem 1rem;background:var(--panel);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;font-family:inherit;transition:border-color .2s,box-shadow .2s;outline:none}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,75,49,.1)}
+.btn-primary{width:100%;padding:.8rem;background:var(--text);color:#fff;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:background .2s}
+.btn-primary:hover{background:#2d2825}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.alert-err{background:rgba(200,75,49,.08);border:1px solid rgba(200,75,49,.2);color:var(--danger);border-radius:6px;padding:.6rem .9rem;font-size:.82rem;margin-top:.8rem;display:none}
+.alert-err.show{display:block}
+/* ── Dashboard ── */
+#page-dash{flex-direction:column;position:relative;z-index:1}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.85rem 2rem;display:flex;align-items:center;gap:1rem}
+.topbar-brand{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:.6rem}
+.topbar-brand span{background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;letter-spacing:1.5px;padding:.25rem .55rem;border-radius:3px;text-transform:uppercase}
+.topbar-user{margin-left:auto;display:flex;align-items:center;gap:.75rem;font-size:.82rem;color:var(--muted)}
+.topbar-user strong{color:var(--text)}
+.btn-topbar{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.3rem .8rem;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:border-color .2s,color .2s}
+.btn-topbar:hover{border-color:var(--accent);color:var(--accent)}
+.btn-topbar.logout:hover{border-color:var(--danger);color:var(--danger)}
+.dash-body{flex:1;padding:2rem;overflow:auto}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.5rem;box-shadow:var(--shadow)}
+.stat-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:.25rem}
+.stat-num.green{color:var(--accent2)}.stat-num.red{color:var(--accent)}
+.stat-label{font-size:.75rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.toolbar{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap}
+.search-input{padding:.6rem 1rem;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:.88rem;font-family:inherit;outline:none;width:260px;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent)}
+.btn-add{padding:.6rem 1.3rem;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity .2s;margin-left:auto}
+.btn-add:hover{opacity:.88}
+/* ── Table ── */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+thead{background:var(--panel);position:sticky;top:0;z-index:5}
+th{padding:.75rem 1rem;text-align:left;font-size:.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap}
+tbody tr.lic-row{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+tbody tr.lic-row:hover{background:rgba(200,75,49,.03)}
+tbody tr.lic-row.expanded{background:rgba(200,75,49,.04);border-bottom:none}
+td{padding:.7rem 1rem;vertical-align:middle}
+.expand-arrow{display:inline-block;transition:transform .2s;font-size:.7rem;margin-right:.4rem;color:var(--muted)}
+.expanded .expand-arrow{transform:rotate(90deg)}
+/* ── Device panel (inline expand) ── */
+tr.device-panel td{padding:0;border-bottom:1px solid var(--border)}
+.device-panel-inner{padding:0 1rem 1rem 2.5rem;background:rgba(200,75,49,.025);display:none}
+tr.device-panel.open .device-panel-inner{display:block}
+.device-panel-header{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0 .5rem}
+.device-panel-title{font-size:.75rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.btn-danger-sm{padding:.25rem .7rem;background:transparent;border:1px solid rgba(200,75,49,.35);color:var(--danger);border-radius:5px;cursor:pointer;font-size:.72rem;font-family:inherit;transition:all .15s}
+.btn-danger-sm:hover{background:var(--danger);color:#fff}
+.device-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.25rem}
+.device-table th{padding:.4rem .75rem;text-align:left;font-size:.65rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+.device-table td{padding:.5rem .75rem;border-bottom:1px solid rgba(226,221,214,.5);vertical-align:middle}
+.device-table tr:last-child td{border-bottom:none}
+.device-table tr:hover td{background:rgba(200,75,49,.04)}
+.device-id-cell{font-family:monospace;font-size:.75rem;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.platform-badge{display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:.68rem;font-weight:600;background:rgba(45,90,61,.08);color:var(--accent2)}
+.no-devices{color:var(--muted);font-size:.82rem;padding:.5rem 0}
+.device-loading{color:var(--muted);font-size:.82rem;padding:.5rem 0;display:flex;align-items:center;gap:.5rem}
+.device-limit-bar{display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--muted);margin-top:.6rem}
+.bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;max-width:120px}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent2);transition:width .4s}
+.bar-fill.warn{background:var(--warn)}.bar-fill.full{background:var(--danger)}
+/* ── Badges / Buttons ── */
+.badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.72rem;font-weight:600}
+.badge-active{background:rgba(45,90,61,.1);color:var(--accent2)}
+.badge-off{background:rgba(200,75,49,.1);color:var(--accent)}
+.badge-inf{background:rgba(181,116,26,.1);color:var(--warn)}
+.act-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.28rem .7rem;border-radius:5px;cursor:pointer;font-size:.75rem;font-family:inherit;transition:all .15s;margin-right:.3rem}
+.act-btn:hover{border-color:var(--accent);color:var(--accent)}
+.act-btn.d:hover{border-color:var(--danger);color:var(--danger)}
+.empty-row td{text-align:center;padding:3rem;color:var(--muted)}
+/* ── Spinner / Loading / Toast / Modal ── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
+.spinner-sm{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{position:fixed;inset:0;background:rgba(245,243,238,.8);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.loading-overlay.show{display:flex}
+.loading-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem;box-shadow:var(--shadow-lg)}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.modal-overlay{position:fixed;inset:0;background:rgba(26,23,20,.4);display:none;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(3px);padding:1rem}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:480px;box-shadow:var(--shadow-lg);animation:mIn .25s cubic-bezier(.22,1,.36,1) both}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:1.5rem 1.5rem 0;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.2rem;padding:.25rem;line-height:1}
+.modal-body{padding:1.5rem}
+.modal-footer{padding:0 1.5rem 1.5rem;display:flex;gap:.75rem;justify-content:flex-end}
+.btn-cancel{padding:.65rem 1.3rem;background:transparent;border:1.5px solid var(--border);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.88rem}
+.btn-cancel:hover{border-color:var(--text);color:var(--text)}
+.btn-save{padding:.65rem 1.6rem;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;border:none;border-radius:8px;cursor:pointer}
+.btn-save:hover{opacity:.88}.btn-save:disabled{opacity:.5;cursor:not-allowed}
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:var(--panel);border:1.5px solid var(--border);border-radius:8px}
+.toggle-wrap label:first-child{font-size:.88rem}
+.toggle{position:relative;width:44px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;left:3px;top:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.toggle-slider{background:var(--accent2)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+.modal-err{background:rgba(200,75,49,.08);border:1px solid rgba(200,75,49,.2);color:var(--danger);border-radius:6px;padding:.55rem .9rem;font-size:.8rem;margin-bottom:.8rem;display:none}
+.modal-err.show{display:block}
+.modal-ok{background:rgba(45,90,61,.08);border:1px solid rgba(45,90,61,.2);color:var(--accent2);border-radius:6px;padding:.55rem .9rem;font-size:.8rem;margin-bottom:.8rem;display:none}
+.modal-ok.show{display:block}
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--text);color:#fff;padding:.8rem 1.4rem;border-radius:8px;font-size:.85rem;font-weight:500;box-shadow:var(--shadow-lg);transform:translateY(80px);opacity:0;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s;z-index:200}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:var(--accent2)}.toast.err{background:var(--accent)}
+.divider{border:none;border-top:1px solid var(--border);margin:.5rem 0}
+/* ── User modal table ── */
+.user-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.user-table th{padding:.6rem .9rem;text-align:left;font-size:.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border)}
+.user-table td{padding:.65rem .9rem;border-bottom:1px solid var(--border);vertical-align:middle}
+.user-table tr:last-child td{border-bottom:none}
+.user-table tr:hover td{background:rgba(200,75,49,.03)}
+.role-badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.72rem;font-weight:600}
+.role-admin{background:rgba(200,75,49,.1);color:var(--accent)}
+.role-reseller{background:rgba(45,90,61,.1);color:var(--accent2)}
+.modal.wide{max-width:700px}
+@media(max-width:640px){.login-wrap{grid-template-columns:1fr}.login-brand{display:none}.stats-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div style="font-size:.85rem;color:var(--muted)" id="loading-text">載入中…</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- PAGE 1 LOGIN -->
+<div id="page-login" class="page active">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="brand-badge">FireAway XR</div>
+      <div class="brand-title">License<br><em>管理</em><br>後台</div>
+      <div class="brand-sub">管理所有單位授權碼、啟用／停用狀態，以及裝置綁定管理。</div>
+    </div>
+    <div class="login-form-wrap">
+      <div class="form-title">管理員登入</div>
+      <div class="form-sub">請輸入您的帳號與密碼</div>
+      <div class="field"><label>帳號</label><input id="inp-user" class="fi" type="text" placeholder="username" autocomplete="username"></div>
+      <div class="field"><label>密碼</label><input id="inp-pass" class="fi" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="btn-primary" id="btn-login" onclick="doLogin()">登入</button>
+      <div class="alert-err" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 DASHBOARD -->
+<div id="page-dash" class="page">
+  <div class="topbar">
+    <div class="topbar-brand">FireAway XR <span>管理系統</span></div>
+    <div class="topbar-user">
+      歡迎，<strong id="topbar-username">—</strong>
+      <span id="topbar-alloc" style="font-size:.75rem;color:var(--muted);background:var(--panel);border:1px solid var(--border);padding:.2rem .65rem;border-radius:4px"></span>
+      <button class="btn-topbar" id="btn-user-mgmt" style="display:none" onclick="openUserModal()">👥 使用者管理</button>
+      <a class="btn-topbar" href="https://rappy13.github.io/vr-system-api/public/license_manual.html" target="_blank" rel="noopener">📖 使用教學</a>
+      <button class="btn-topbar" onclick="openPwdModal()">⚙ 帳號設定</button>
+      <button class="btn-topbar logout" onclick="doLogout()">登出</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-total">—</div><div class="stat-label">授權總數</div></div>
+      <div class="stat-card"><div class="stat-num green" id="stat-active">—</div><div class="stat-label">啟用中</div></div>
+      <div class="stat-card"><div class="stat-num red" id="stat-inactive">—</div><div class="stat-label">已停用</div></div>
+    </div>
+    <div class="toolbar">
+      <input class="search-input" id="search-input" type="text" placeholder="🔍  搜尋名稱 / 授權碼 / Email…" oninput="filterTable()">
+      <button class="btn-add" onclick="openModal()">＋ 新增 License</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th></th>
+          <th>授權碼</th><th>單位名稱</th><th>Email</th>
+          <th>無限次數</th><th>剩餘次數</th><th>裝置</th><th>狀態</th><th>建立日期</th><th>操作</th>
+        </tr></thead>
+        <tbody id="license-tbody"><tr class="empty-row"><td colspan="10">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 新增/編輯 License -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">新增 License</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="modal-error"></div>
+      <input type="hidden" id="edit-objectId">
+      <div class="field"><label>單位名稱 *</label><input id="f-username" class="fi" type="text" placeholder="例如：台北消防局"></div>
+      <div class="field"><label>Email</label><input id="f-email" class="fi" type="email" placeholder="example@email.com"></div>
+      <div class="field">
+        <div class="toggle-wrap">
+          <label>無限次數（infinity）</label>
+          <label class="toggle"><input type="checkbox" id="f-infinity" checked onchange="toggleCountField()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field" id="count-field" style="display:none">
+        <label>使用次數上限</label>
+        <input id="f-count" class="fi" type="number" min="0" placeholder="例如：100">
+        <div id="count-hint" style="font-size:.72rem;color:var(--muted);margin-top:.3rem"></div>
+      </div>
+      <div class="field">
+        <label>裝置上限台數</label>
+        <input id="f-maxdevices" class="fi" type="number" min="1" placeholder="留空 = 無限台數">
+        <div id="maxdevices-hint" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;display:none">非管理員帳號固定為 3 台</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" id="btn-save" onclick="saveLicense()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 帳號設定 -->
+<div class="modal-overlay" id="pwd-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚙ 帳號設定</div>
+      <button class="modal-close" onclick="closePwdModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="pwd-error"></div>
+      <div class="modal-ok"  id="pwd-ok"></div>
+      <div class="field"><label>目前帳號</label><input id="pwd-username" class="fi" type="text" placeholder="新帳號（不改請留空）" autocomplete="off"></div>
+      <hr class="divider">
+      <div class="field"><label>舊密碼 *</label><input id="pwd-old" class="fi" type="password" placeholder="請輸入目前密碼" autocomplete="current-password"></div>
+      <div class="field"><label>新密碼</label><input id="pwd-new" class="fi" type="password" placeholder="不改密碼請留空" autocomplete="new-password"></div>
+      <div class="field"><label>確認新密碼</label><input id="pwd-confirm" class="fi" type="password" placeholder="再輸入一次新密碼" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePwdModal()">取消</button>
+      <button class="btn-save" id="btn-pwd-save" onclick="saveAccount()">儲存變更</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = 'https://vr-system-api.onrender.com';
+let allLicenses = [], currentUser = '', authToken = '', currentRole = '', currentObjectId = '', currentCanInf = false, currentAllocCount = 0;
+// 記錄已展開的面板及其裝置資料 cache
+const expandedPanels = new Set();
+const deviceCache = {};
+
+// ── Init ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  authToken   = sessionStorage.getItem('vr_token') || '';
+  currentUser    = sessionStorage.getItem('vr_user')     || '';
+  currentRole    = sessionStorage.getItem('vr_role')     || '';
+  currentObjectId = sessionStorage.getItem('vr_objectid') || '';
+  currentCanInf   = sessionStorage.getItem('vr_can_inf') === '1';
+  currentAllocCount = parseInt(sessionStorage.getItem('vr_alloc') || '0');
+  if (authToken) {
+    document.getElementById('topbar-username').textContent = currentUser;
+    if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
+    updateAllocDisplay();
+    showPage('dash');
+    loadLicenses();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('page-login').classList.contains('active')) doLogin();
+});
+
+// ── Helpers ───────────────────────────────────────────────────
+function showPage(n) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById('page-' + n).classList.add('active'); }
+function showLoading(t = '載入中…') { document.getElementById('loading-text').textContent = t; document.getElementById('loading').classList.add('show'); }
+function updateAllocDisplay() {
+  const el = document.getElementById('topbar-alloc');
+  if (!el) return;
+  if (currentCanInf) {
+    el.textContent = '可分配次數：無限制';
+    el.style.color = 'var(--warn)';
+  } else {
+    el.textContent = `可分配次數：${currentAllocCount}`;
+    el.style.color = currentAllocCount <= 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+}
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+function toast(msg, type = '') { const el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => el.classList.remove('show'), 2800); }
+function showErr(el, msg) { el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function showOk(el, msg) { el.textContent = '✔ ' + msg; el.classList.add('show'); }
+function hideMsg(el) { el.classList.remove('show'); }
+function esc(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+async function apiGet(url) {
+  const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken } });
+  return r.json();
+}
+async function apiPost(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ── Login / Logout ────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('inp-user').value.trim();
+  const password = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('btn-login');
+  errEl.classList.remove('show');
+  if (!username || !password) { showErr(errEl, '請填寫帳號與密碼'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>登入中…';
+  try {
+    const res = await fetch(`${BASE}/api/login.php`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    }).then(r => r.json());
+    if (res.success) {
+      authToken = res.data?.token || res.token || '';
+      const uname = res.data?.username || res.username || '';
+      sessionStorage.setItem('vr_token', authToken);
+      sessionStorage.setItem('vr_user', uname);
+      sessionStorage.setItem('vr_objectid', res.data?.objectId || res.objectId || '');
+      sessionStorage.setItem('vr_role', res.data?.role || res.role || '');
+      const canInf = res.data?.can_allocate_infinity || res.can_allocate_infinity || false;
+      const alloc  = res.data?.allocatable_count ?? res.allocatable_count ?? 0;
+      sessionStorage.setItem('vr_can_inf', canInf ? '1' : '0');
+      sessionStorage.setItem('vr_alloc', String(alloc));
+      currentCanInf     = !!canInf;
+      currentAllocCount = parseInt(alloc);
+      currentRole = res.data?.role || res.role || '';
+      currentObjectId = res.data?.objectId || res.objectId || '';
+      if (currentRole === 'admin') document.getElementById('btn-user-mgmt').style.display = '';
+      currentUser = uname;
+      document.getElementById('topbar-username').textContent = currentUser;
+      updateAllocDisplay();
+      showPage('dash'); loadLicenses();
+    } else { showErr(errEl, res.message || '登入失敗'); }
+  } catch (e) { showErr(errEl, '連線失敗，請稍後再試'); }
+  finally { btn.disabled = false; btn.innerHTML = '登入'; }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('vr_token'); sessionStorage.removeItem('vr_user'); sessionStorage.removeItem('vr_objectid'); sessionStorage.removeItem('vr_role'); sessionStorage.removeItem('vr_can_inf'); sessionStorage.removeItem('vr_alloc');
+  authToken = ''; currentUser = '';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  expandedPanels.clear();
+  showPage('login');
+}
+
+// ── License list ──────────────────────────────────────────────
+async function loadLicenses() {
+  showLoading('載入授權列表…');
+  try {
+    const res = await apiGet(`${BASE}/api/load_license.php`);
+    allLicenses = res.success ? (Array.isArray(res.data) ? res.data : (res.data ? [res.data] : [])) : [];
+    renderTable(allLicenses); updateStats(allLicenses);
+  } catch (e) { toast('無法載入資料', 'err'); }
+  finally { hideLoading(); }
+}
+
+function updateStats(list) {
+  const active = list.filter(l => l.active === true || l.active === 1).length;
+  document.getElementById('stat-total').textContent = list.length;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-inactive').textContent = list.length - active;
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('license-tbody');
+  tbody.innerHTML = '';
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="10">查無資料</td></tr>'; return; }
+  list.forEach(lic => {
+    const isActive = lic.active === true || lic.active === 1;
+    const isInf = lic.infinity === true || lic.infinity === 1;
+    const count = lic.count != null ? lic.count : '—';
+    const maxDev = lic.max_devices != null ? lic.max_devices : '∞';
+    const countCell = isInf
+      ? '<span style="color:var(--muted)">∞</span>'
+      : `<span style="font-family:monospace;font-weight:600;color:${count === 0 ? 'var(--danger)' : 'var(--text)'}">${count}</span>`;
+
+    // Main license row
+    const tr = document.createElement('tr');
+    tr.className = 'lic-row';
+    tr.dataset.serial = lic.serial_code || '';
+    tr.id = 'lic-row-' + (lic.objectId || '');
+    tr.innerHTML = `
+      <td style="width:24px;padding-left:1rem"><span class="expand-arrow">▶</span></td>
+      <td style="font-family:monospace;font-size:.82rem;color:var(--muted)">${esc(lic.serial_code || '—')}</td>
+      <td style="font-weight:500">${esc(lic.user_name || '—')}</td>
+      <td style="color:var(--muted)">${esc(lic.email || '—')}</td>
+      <td>${isInf ? '<span class="badge badge-inf">∞ 無限</span>' : '<span class="badge badge-off">限制</span>'}</td>
+      <td>${countCell}</td>
+      <td><span style="font-size:.8rem;color:var(--muted)" id="devcount-${esc(lic.serial_code)}">— / ${maxDev}</span></td>
+      <td>${isActive ? '<span class="badge badge-active">✔ 啟用</span>' : '<span class="badge badge-off">✘ 停用</span>'}</td>
+      <td style="color:var(--muted);font-size:.82rem">${(lic.created_at || '').slice(0, 10)}</td>
+      <td>
+        <button class="act-btn" onclick='event.stopPropagation();openModal(${JSON.stringify(lic)})'>編輯</button>
+        <button class="act-btn d" onclick="event.stopPropagation();toggleLicense('${lic.objectId}',${!isActive})">${isActive ? '停用' : '啟用'}</button>
+      </td>`;
+    tr.addEventListener('click', () => toggleDevicePanel(lic.serial_code, lic.objectId, lic.max_devices));
+    tbody.appendChild(tr);
+
+    // Device panel row (hidden by default)
+    const dp = document.createElement('tr');
+    dp.className = 'device-panel';
+    dp.id = 'dp-' + (lic.objectId || '');
+    dp.innerHTML = `<td colspan="10"><div class="device-panel-inner" id="dpi-${lic.objectId}">
+      <div class="device-loading"><span class="spinner-sm"></span> 載入裝置資料…</div>
+    </div></td>`;
+    tbody.appendChild(dp);
+  });
+}
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  renderTable(allLicenses.filter(l =>
+    (l.user_name || '').toLowerCase().includes(q) ||
+    (l.serial_code || '').toLowerCase().includes(q) ||
+    (l.email || '').toLowerCase().includes(q)
+  ));
+}
+
+// ── Device panel ──────────────────────────────────────────────
+async function toggleDevicePanel(serial_code, objectId, max_devices) {
+  const licRow = document.getElementById('lic-row-' + objectId);
+  const dpRow  = document.getElementById('dp-' + objectId);
+  const dpi    = document.getElementById('dpi-' + objectId);
+  if (!licRow || !dpRow) return;
+
+  const isOpen = dpRow.classList.contains('open');
+  if (isOpen) {
+    dpRow.classList.remove('open');
+    licRow.classList.remove('expanded');
+    expandedPanels.delete(objectId);
+    return;
+  }
+
+  dpRow.classList.add('open');
+  licRow.classList.add('expanded');
+  expandedPanels.add(objectId);
+
+  // Show loading
+  dpi.innerHTML = '<div class="device-loading"><span class="spinner-sm"></span> 載入裝置資料…</div>';
+
+  try {
+    const res = await apiGet(`${BASE}/api/manage_devices.php?serial_code=${encodeURIComponent(serial_code)}`);
+    if (!res.success) { dpi.innerHTML = `<div class="no-devices">⚠ ${esc(res.message)}</div>`; return; }
+
+    const data = res.data;
+    deviceCache[serial_code] = data;
+    renderDevicePanel(dpi, serial_code, objectId, data, max_devices);
+
+    // Update device count column
+    const maxStr = max_devices != null ? max_devices : '∞';
+    const countEl = document.getElementById('devcount-' + serial_code);
+    if (countEl) countEl.textContent = `${data.bound_count} / ${maxStr}`;
+
+  } catch (e) { dpi.innerHTML = '<div class="no-devices">⚠ 無法載入裝置資料</div>'; }
+}
+
+function renderDevicePanel(dpi, serial_code, objectId, data, max_devices) {
+  const { devices, bound_count } = data;
+  const maxDev = max_devices != null ? parseInt(max_devices) : null;
+  const pct    = maxDev ? Math.min(100, Math.round(bound_count / maxDev * 100)) : 0;
+  const barCls = pct >= 100 ? 'full' : pct >= 70 ? 'warn' : '';
+
+  let html = `<div class="device-panel-header">
+    <span class="device-panel-title">🖥 綁定裝置（${bound_count}${maxDev ? ' / ' + maxDev : ' / ∞'} 台）</span>
+    ${bound_count > 0 ? `<button class="btn-danger-sm" onclick="deleteAllDevices('${esc(serial_code)}','${objectId}',${max_devices??'null'})">全部解除</button>` : ''}
+  </div>`;
+
+  if (maxDev) {
+    html += `<div class="device-limit-bar">
+      <span>${pct}%</span>
+      <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+
+  if (!devices.length) {
+    html += '<div class="no-devices" style="padding:.5rem 0">尚未有裝置綁定此序號</div>';
+  } else {
+    html += `<table class="device-table">
+      <thead><tr><th>裝置 ID（Hash）</th><th>平台</th><th>首次綁定</th><th>最後驗證</th><th></th></tr></thead>
+      <tbody>`;
+    devices.forEach(d => {
+      const shortId = d.device_id.length > 20 ? d.device_id.slice(0, 20) + '…' : d.device_id;
+      html += `<tr>
+        <td class="device-id-cell" title="${esc(d.device_id)}">${esc(shortId)}</td>
+        <td><span class="platform-badge">${esc(d.platform || 'Unknown')}</span></td>
+        <td style="color:var(--muted);font-size:.78rem">${(d.first_seen || '').slice(0, 16).replace('T', ' ')}</td>
+        <td style="color:var(--muted);font-size:.78rem">${(d.last_seen || '').slice(0, 16).replace('T', ' ')}</td>
+        <td><button class="btn-danger-sm" onclick="deleteDevice(${d.id},'${esc(serial_code)}','${objectId}',${max_devices??'null'})">解除</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  dpi.innerHTML = html;
+}
+
+async function deleteDevice(id, serial_code, objectId, max_devices) {
+  if (!confirm('確定要解除此裝置的綁定嗎？')) return;
+  try {
+    const res = await apiPost(`${BASE}/api/manage_devices.php`, { action: 'delete', id });
+    if (res.success) {
+      toast('✔ 裝置綁定已解除', 'ok');
+      // Reload panel
+      const dpi = document.getElementById('dpi-' + objectId);
+      dpi.innerHTML = '<div class="device-loading"><span class="spinner-sm"></span> 更新中…</div>';
+      const res2 = await apiGet(`${BASE}/api/manage_devices.php?serial_code=${encodeURIComponent(serial_code)}`);
+      if (res2.success) {
+        renderDevicePanel(dpi, serial_code, objectId, res2.data, max_devices);
+        const maxStr = max_devices != null ? max_devices : '∞';
+        const countEl = document.getElementById('devcount-' + serial_code);
+        if (countEl) countEl.textContent = `${res2.data.bound_count} / ${maxStr}`;
+      }
+    } else { toast('⚠ ' + (res.message || '解除失敗'), 'err'); }
+  } catch (e) { toast('連線失敗', 'err'); }
+}
+
+async function deleteAllDevices(serial_code, objectId, max_devices) {
+  if (!confirm(`確定要解除「${serial_code}」的全部裝置綁定嗎？`)) return;
+  try {
+    const res = await apiPost(`${BASE}/api/manage_devices.php`, { action: 'delete_all', serial_code });
+    if (res.success) {
+      toast('✔ 全部裝置已解除綁定', 'ok');
+      const dpi = document.getElementById('dpi-' + objectId);
+      renderDevicePanel(dpi, serial_code, objectId, { devices: [], bound_count: 0 }, max_devices);
+      const maxStr = max_devices != null ? max_devices : '∞';
+      const countEl = document.getElementById('devcount-' + serial_code);
+      if (countEl) countEl.textContent = `0 / ${maxStr}`;
+    } else { toast('⚠ ' + (res.message || '操作失敗'), 'err'); }
+  } catch (e) { toast('連線失敗', 'err'); }
+}
+
+// ── License modal ─────────────────────────────────────────────
+function toggleCountField() {
+  const isInf = document.getElementById('f-infinity').checked;
+  document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
+  if (!isInf && !currentCanInf) {
+    // 顯示剩餘可用次數提示
+    const hint = document.getElementById('count-hint');
+    if (hint) hint.textContent = `可用次數：${currentAllocCount}`;
+    const inp = document.getElementById('f-count');
+    inp.max = currentAllocCount;
+  }
+}
+
+function openModal(lic = null) {
+  document.getElementById('modal-error').classList.remove('show');
+  document.getElementById('modal-title').textContent = lic ? '編輯 License' : '新增 License';
+  document.getElementById('edit-objectId').value = lic?.objectId || '';
+  // 儲存原始 count 供差額計算
+  document.getElementById('edit-objectId').dataset.origCount = (lic?.count != null) ? lic.count : '0';
+
+  document.getElementById('f-username').value    = lic?.user_name || '';
+  document.getElementById('f-email').value       = lic?.email || '';
+  const maxDevInp  = document.getElementById('f-maxdevices');
+  const maxDevHint = document.getElementById('maxdevices-hint');
+  if (currentRole !== 'admin') {
+    maxDevInp.value    = '3';
+    maxDevInp.disabled = true;
+    maxDevInp.style.opacity = '.5';
+    maxDevHint.style.display = '';
+  } else {
+    maxDevInp.value    = lic?.max_devices != null ? lic.max_devices : '';
+    maxDevInp.disabled = false;
+    maxDevInp.style.opacity = '';
+    maxDevHint.style.display = 'none';
+  }
+
+  const infToggle = document.getElementById('f-infinity');
+  const infWrap   = infToggle.closest('.toggle-wrap') || infToggle.closest('.field');
+
+  if (!currentCanInf) {
+    // USER 無限分配權限關閉 → infinity toggle 鎖定為 off
+    infToggle.checked  = false;
+    infToggle.disabled = true;
+    if (infWrap) infWrap.style.opacity = '.45';
+  } else {
+    infToggle.disabled = false;
+    if (infWrap) infWrap.style.opacity = '';
+    const isInf = lic ? (lic.infinity === true || lic.infinity === 1) : true;
+    infToggle.checked = isInf;
+  }
+
+  const isInf = infToggle.checked;
+  const oldCount = lic?.count != null ? lic.count : 0;
+  document.getElementById('f-count').value = (!isInf && lic?.count != null) ? lic.count : '';
+
+  if (!currentCanInf) {
+    // 計算這張 License 原本佔用的次數，加回後才是真正可用上限
+    const usedByThis = (lic && !isInf) ? oldCount : 0;
+    const maxAvail   = currentAllocCount + usedByThis;
+    document.getElementById('f-count').max = maxAvail;
+    const hint = document.getElementById('count-hint');
+    if (hint) hint.textContent = `可分配次數：${currentAllocCount}（本序號已用 ${usedByThis}，本次最多可填 ${maxAvail}）`;
+  } else {
+    document.getElementById('f-count').removeAttribute('max');
+    const hint = document.getElementById('count-hint');
+    if (hint) hint.textContent = '';
+  }
+
+  document.getElementById('count-field').style.display = isInf ? 'none' : 'block';
+  document.getElementById('modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('f-username').focus(), 100);
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+// modal-overlay: 點擊背景不關閉
+
+async function saveLicense() {
+  const objectId   = document.getElementById('edit-objectId').value;
+  const origCount  = parseInt(document.getElementById('edit-objectId').dataset.origCount || '0');
+  const user_name  = document.getElementById('f-username').value.trim();
+  const email      = document.getElementById('f-email').value.trim();
+  const infinity   = document.getElementById('f-infinity').checked;
+  const countVal   = document.getElementById('f-count').value;
+  const maxDevVal  = document.getElementById('f-maxdevices').value;
+  const errEl      = document.getElementById('modal-error');
+  const btn        = document.getElementById('btn-save');
+  errEl.classList.remove('show');
+  if (!user_name) { showErr(errEl, '請填寫單位名稱'); return; }
+  if (!infinity && (countVal === '' || countVal === null || parseInt(countVal) < 0)) {
+    showErr(errEl, '請填寫使用次數上限（0 或以上）'); return;
+  }
+  // 若 USER 沒有無限次數，驗證不超過可分配上限
+  if (!currentCanInf && !infinity) {
+    const newCount = parseInt(countVal);
+    const usedByThis = objectId ? origCount : 0;
+    const maxAvail   = currentAllocCount + usedByThis;
+    if (newCount > maxAvail) {
+      showErr(errEl, `次數超過可分配上限（最多可填 ${maxAvail}）`); return;
+    }
+  }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
+  try {
+    const payload = { user_name, infinity: infinity ? 1 : 0, active: 1 };
+    if (email) payload.email = email;
+    if (!infinity) payload.count = parseInt(countVal);
+    if (maxDevVal !== '') payload.max_devices = parseInt(maxDevVal);
+    else payload.max_devices = null;
+    if (objectId) payload.objectId = objectId;
+    const url = objectId ? `${BASE}/api/update_license.php` : `${BASE}/api/save_license.php`;
+    const res = await apiPost(url, payload);
+    if (res.success) {
+      // 更新本地 allocatable_count 顯示（後端也會更新，但先同步前端）
+      if (!currentCanInf && !infinity) {
+        const newCount   = parseInt(countVal);
+        const usedByThis = objectId ? origCount : 0;
+        const diff       = newCount - usedByThis; // 正 = 多用，負 = 退回
+        currentAllocCount -= diff;
+        sessionStorage.setItem('vr_alloc', String(currentAllocCount));
+        updateAllocDisplay();
+      }
+      toast(objectId ? '✔ 授權資料已更新' : '✔ 新增授權成功', 'ok');
+      closeModal(); await loadLicenses();
+    } else { showErr(errEl, res.message || '儲存失敗'); }
+  } catch (e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '儲存'; }
+}
+
+async function toggleLicense(objectId, active) {
+  showLoading(active ? '啟用中…' : '停用中…');
+  try {
+    const res = await apiPost(`${BASE}/api/update_license.php`, { objectId, active: active ? 1 : 0 });
+    if (res.success) { toast(active ? '✔ 已啟用授權' : '✔ 已停用授權', 'ok'); await loadLicenses(); }
+    else { toast('操作失敗：' + (res.message || ''), 'err'); hideLoading(); }
+  } catch (e) { toast('連線失敗', 'err'); hideLoading(); }
+}
+
+// ── Account settings modal ────────────────────────────────────
+function openPwdModal() {
+  document.getElementById('pwd-error').classList.remove('show');
+  document.getElementById('pwd-ok').classList.remove('show');
+  document.getElementById('pwd-username').value = currentUser;
+  document.getElementById('pwd-old').value = '';
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+  document.getElementById('pwd-modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('pwd-old').focus(), 100);
+}
+function closePwdModal() { document.getElementById('pwd-modal-overlay').classList.remove('show'); }
+// pwd-modal-overlay: 點擊背景不關閉
+
+async function saveAccount() {
+  const newUsername = document.getElementById('pwd-username').value.trim();
+  const oldPwd      = document.getElementById('pwd-old').value;
+  const newPwd      = document.getElementById('pwd-new').value;
+  const confirmPwd  = document.getElementById('pwd-confirm').value;
+  const errEl       = document.getElementById('pwd-error');
+  const okEl        = document.getElementById('pwd-ok');
+  const btn         = document.getElementById('btn-pwd-save');
+  hideMsg(errEl); hideMsg(okEl);
+  if (!oldPwd) { showErr(errEl, '請輸入目前密碼'); return; }
+  if (newPwd && newPwd !== confirmPwd) { showErr(errEl, '新密碼與確認密碼不符'); return; }
+  if (newPwd && newPwd.length < 6) { showErr(errEl, '新密碼至少需要 6 個字元'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
+  try {
+    const payload = { username: currentUser, old_password: oldPwd };
+    if (newUsername && newUsername !== currentUser) payload.new_username = newUsername;
+    if (newPwd) payload.new_password = newPwd;
+    const res = await apiPost(`${BASE}/api/update_user.php`, payload);
+    if (res.success) {
+      if (newUsername && newUsername !== currentUser) {
+        currentUser = newUsername;
+        sessionStorage.setItem('vr_user', currentUser);
+        document.getElementById('topbar-username').textContent = currentUser;
+      }
+      showOk(okEl, '帳號資料已更新');
+      document.getElementById('pwd-old').value = '';
+      document.getElementById('pwd-new').value = '';
+      document.getElementById('pwd-confirm').value = '';
+    } else { showErr(errEl, res.message || '更新失敗'); }
+  } catch (e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '儲存變更'; }
+}
+// ── User 管理 ─────────────────────────────────────────────────
+async function openUserModal() {
+  document.getElementById('user-modal-error').classList.remove('show');
+  document.getElementById('user-modal-overlay').classList.add('show');
+  document.getElementById('user-table-wrap').innerHTML = '<div style="color:var(--muted);font-size:.85rem">載入中…</div>';
+  try {
+    const res = await apiGet(`${BASE}/api/load_users.php`);
+    if (!res.success) {
+      document.getElementById('user-table-wrap').innerHTML = `<div style="color:var(--danger)">⚠ ${esc(res.message)}</div>`;
+      return;
+    }
+    renderUserTable(res.data || []);
+  } catch(e) {
+    document.getElementById('user-table-wrap').innerHTML = '<div style="color:var(--danger)">⚠ 連線失敗</div>';
+  }
+}
+function closeUserModal() { document.getElementById('user-modal-overlay').classList.remove('show'); }
+// user-modal-overlay: 點擊背景不關閉
+
+function renderUserTable(users) {
+  if (!users.length) {
+    document.getElementById('user-table-wrap').innerHTML = '<div style="color:var(--muted);font-size:.85rem">目前沒有其他使用者</div>';
+    return;
+  }
+  let html = `<table class="user-table"><thead><tr>
+    <th>帳號</th><th>階級</th><th>可無限分配</th><th>可分配次數</th><th>操作</th>
+  </tr></thead><tbody>`;
+  users.forEach(u => {
+    const roleLabel = u.role === 'admin'
+      ? '<span class="role-badge role-admin">管理員</span>'
+      : '<span class="role-badge role-reseller">經銷商</span>';
+    const infLabel = (u.can_allocate_infinity == 1 || u.can_allocate_infinity === true) ? '✔ 是' : '—';
+    const uJson = encodeURIComponent(JSON.stringify(u));
+    html += `<tr>
+      <td style="font-weight:500">${esc(u.username)}</td>
+      <td>${roleLabel}</td>
+      <td style="font-size:.82rem;color:var(--muted)">${infLabel}</td>
+      <td style="font-family:monospace">${u.allocatable_count ?? 0}</td>
+      <td><button class="act-btn" onclick="openEditUserModal(decodeAndParse('${uJson}'))">編輯</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('user-table-wrap').innerHTML = html;
+}
+
+function decodeAndParse(s) { return JSON.parse(decodeURIComponent(s)); }
+
+function openEditUserModal(u) {
+  document.getElementById('edit-user-error').classList.remove('show');
+  document.getElementById('eu-objectId').value    = u.objectId || '';
+  document.getElementById('eu-username').value    = u.username || '';
+  document.getElementById('eu-password').value    = '';
+  document.getElementById('eu-role').value         = u.role || 'reseller';
+  document.getElementById('eu-infinity').checked   = u.can_allocate_infinity == 1 || u.can_allocate_infinity === true;
+  document.getElementById('eu-alloc').value        = u.allocatable_count ?? 0;
+  document.getElementById('edit-user-modal-overlay').classList.add('show');
+}
+function closeEditUserModal() { document.getElementById('edit-user-modal-overlay').classList.remove('show'); }
+// edit-user-modal-overlay: 點擊背景不關閉
+
+async function saveEditUser() {
+  const objectId = document.getElementById('eu-objectId').value;
+  const username = document.getElementById('eu-username').value.trim();
+  const password = document.getElementById('eu-password').value;
+  const role     = document.getElementById('eu-role').value;
+  const infinity = document.getElementById('eu-infinity').checked ? 1 : 0;
+  const alloc    = parseInt(document.getElementById('eu-alloc').value) || 0;
+  const errEl    = document.getElementById('edit-user-error');
+  const btn      = document.getElementById('btn-edit-user-save');
+  errEl.classList.remove('show');
+  if (!username) { showErr(errEl, '請填寫帳號'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>儲存中…';
+  try {
+    const payload = {
+      target_objectId: objectId,
+      new_username: username,
+      role,
+      can_allocate_infinity: infinity,
+      allocatable_count: alloc
+    };
+    if (password) payload.new_password = password;
+    const res = await apiPost(`${BASE}/api/update_user_admin.php`, payload);
+    if (res.success) {
+      toast('✔ 使用者已更新', 'ok');
+      closeEditUserModal();
+      openUserModal();
+    } else { showErr(errEl, res.message || '更新失敗'); }
+  } catch(e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '儲存'; }
+}
+
+// ── 新增使用者 ────────────────────────────────────────────────
+function openCreateUserModal() {
+  document.getElementById('create-user-error').classList.remove('show');
+  document.getElementById('cu-username').value  = '';
+  document.getElementById('cu-password').value  = '';
+  document.getElementById('cu-confirm').value   = '';
+  document.getElementById('cu-role').value      = 'reseller';
+  document.getElementById('cu-infinity').checked = false;
+  document.getElementById('cu-alloc').value     = '0';
+  document.getElementById('create-user-modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('cu-username').focus(), 100);
+}
+function closeCreateUserModal() { document.getElementById('create-user-modal-overlay').classList.remove('show'); }
+// create-user-modal-overlay: 點擊背景不關閉
+
+async function saveCreateUser() {
+  const username = document.getElementById('cu-username').value.trim();
+  const password = document.getElementById('cu-password').value;
+  const confirm  = document.getElementById('cu-confirm').value;
+  const role     = document.getElementById('cu-role').value;
+  const infinity = document.getElementById('cu-infinity').checked ? 1 : 0;
+  const alloc    = parseInt(document.getElementById('cu-alloc').value) || 0;
+  const errEl    = document.getElementById('create-user-error');
+  const btn      = document.getElementById('btn-create-user-save');
+  errEl.classList.remove('show');
+  if (!username)            { showErr(errEl, '請填寫帳號'); return; }
+  if (!password)            { showErr(errEl, '請填寫密碼'); return; }
+  if (password.length < 6)  { showErr(errEl, '密碼至少需要 6 個字元'); return; }
+  if (password !== confirm)  { showErr(errEl, '兩次密碼輸入不一致'); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>建立中…';
+  try {
+    const res = await apiPost(`${BASE}/api/create_user.php`, {
+      username, password, role,
+      can_allocate_infinity: infinity,
+      allocatable_count: alloc
+    });
+    if (res.success) {
+      toast('✔ 使用者已建立', 'ok');
+      closeCreateUserModal();
+      openUserModal();
+    } else { showErr(errEl, res.message || '建立失敗'); }
+  } catch(e) { showErr(errEl, '連線失敗'); }
+  finally { btn.disabled = false; btn.innerHTML = '建立'; }
+}
+
+</script>
+<!-- MODAL: 使用者管理 -->
+<div class="modal-overlay" id="user-modal-overlay">
+  <div class="modal wide">
+    <div class="modal-header">
+      <div class="modal-title">👥 使用者管理</div>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <button class="btn-add" style="padding:.4rem 1rem;font-size:.8rem" onclick="openCreateUserModal()">＋ 新增使用者</button>
+        <button class="modal-close" onclick="closeUserModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="user-modal-error"></div>
+      <div id="user-table-wrap" style="overflow-x:auto">
+        <div style="color:var(--muted);font-size:.85rem">載入中…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 新增 User -->
+<div class="modal-overlay" id="create-user-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ 新增使用者</div>
+      <button class="modal-close" onclick="closeCreateUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="create-user-error"></div>
+      <div class="field"><label>帳號 *</label><input id="cu-username" class="fi" type="text" placeholder="帳號名稱" autocomplete="off"></div>
+      <div class="field"><label>密碼 *（至少 6 碼）</label><input id="cu-password" class="fi" type="password" placeholder="設定密碼" autocomplete="new-password"></div>
+      <div class="field"><label>確認密碼 *</label><input id="cu-confirm" class="fi" type="password" placeholder="再輸入一次" autocomplete="new-password"></div>
+      <div class="field"><label>階級</label>
+        <select id="cu-role" class="fi">
+          <option value="reseller">經銷商（reseller）</option>
+          <option value="admin">管理員（admin）</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="toggle-wrap">
+          <label>可無限分配次數</label>
+          <label class="toggle"><input type="checkbox" id="cu-infinity"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field"><label>可分配次數</label><input id="cu-alloc" class="fi" type="number" min="0" placeholder="0" value="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCreateUserModal()">取消</button>
+      <button class="btn-save" id="btn-create-user-save" onclick="saveCreateUser()">建立</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 編輯 User -->
+<div class="modal-overlay" id="edit-user-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ 編輯使用者</div>
+      <button class="modal-close" onclick="closeEditUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="edit-user-error"></div>
+      <input type="hidden" id="eu-objectId">
+      <div class="field"><label>帳號</label><input id="eu-username" class="fi" type="text" placeholder="帳號名稱"></div>
+      <div class="field"><label>新密碼（留空不變）</label><input id="eu-password" class="fi" type="password" placeholder="不修改請留空"></div>
+      <div class="field"><label>階級</label>
+        <select id="eu-role" class="fi">
+          <option value="admin">管理員（admin）</option>
+          <option value="reseller">經銷商（reseller）</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="toggle-wrap">
+          <label>可無限分配次數</label>
+          <label class="toggle"><input type="checkbox" id="eu-infinity"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field"><label>可分配次數</label><input id="eu-alloc" class="fi" type="number" min="0" placeholder="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditUserModal()">取消</button>
+      <button class="btn-save" id="btn-edit-user-save" onclick="saveEditUser()">儲存</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAway XR 訓練紀錄系統</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0a0e17;
+    --surface: #111827;
+    --panel:   #161d2e;
+    --border:  #1e2d45;
+    --accent:  #00d4ff;
+    --success: #22d3a0;
+    --danger:  #ef4444;
+    --warn:    #f59e0b;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --glow:    0 0 20px rgba(0,212,255,.25);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .page { display: none; position: relative; z-index: 1; min-height: 100vh; }
+  .page.active { display: flex; }
+
+  /* ── Language bar ── */
+  .lang-bar {
+    position: fixed; top: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: .6rem;
+    padding: .6rem 1rem; max-width: min(60vw, 420px);
+  }
+  .lang-select {
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); font-family: inherit; font-size: .78rem;
+    padding: .35rem .6rem; border-radius: 6px; cursor: pointer; outline: none;
+    transition: border-color .2s;
+  }
+  .lang-select:focus, .lang-select:hover { border-color: var(--accent); }
+  .lang-disclaimer {
+    font-size: .68rem; color: var(--muted); line-height: 1.3;
+    max-width: 260px; text-align: right;
+  }
+  @media (max-width: 640px) {
+    .lang-bar { position: static; max-width: 100%; padding: .75rem 1rem 0; justify-content: flex-end; }
+    .lang-disclaimer { max-width: 180px; }
+  }
+
+  #page-search { align-items: center; justify-content: center; padding: 2rem; }
+  .search-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 3rem 2.5rem;
+    width: 100%; max-width: 460px;
+    box-shadow: var(--glow), 0 24px 60px rgba(0,0,0,.5);
+    animation: fadeUp .5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(24px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .logo-wrap { text-align: center; margin-bottom: 2.5rem; }
+  .logo-icon {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, var(--accent), #0088aa);
+    border-radius: 14px; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 1rem; box-shadow: var(--glow);
+  }
+  .logo-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.6rem;
+    font-weight: 700; letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
+  }
+  .logo-sub { font-size: .8rem; color: var(--muted); letter-spacing: 1px; margin-top: .25rem; }
+  .field-group { margin-bottom: 1.4rem; }
+  .field-label {
+    display: block; font-size: .75rem; font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: .5rem;
+  }
+  .field-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; color: var(--text);
+    font-size: 1rem; font-family: inherit;
+    transition: border-color .2s, box-shadow .2s; outline: none;
+  }
+  .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.12); }
+  .field-input::placeholder { color: var(--muted); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.4); cursor: pointer; }
+  .date-mode-toggle {
+    display: flex; gap: .5rem; margin-bottom: .6rem;
+  }
+  .date-mode-btn {
+    flex: 1; padding: .4rem; font-size: .72rem; font-weight: 600;
+    letter-spacing: .5px; text-transform: uppercase;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 6px; cursor: pointer;
+    font-family: inherit; transition: all .2s;
+  }
+  .date-mode-btn.active {
+    background: rgba(0,212,255,.1); border-color: var(--accent); color: var(--accent);
+  }
+  .date-range-wrap {
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .date-range-wrap .field-input { flex: 1; }
+  .date-range-sep {
+    color: var(--muted); font-size: .8rem; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-query {
+    width: 100%; padding: .85rem;
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    color: #000; font-weight: 700; border: none; border-radius: 8px;
+    cursor: pointer; transition: opacity .2s, transform .1s;
+    font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; letter-spacing: 1px;
+  }
+  .btn-query:hover { opacity: .9; }
+  .btn-query:active { transform: scale(.98); }
+  .btn-query:disabled { opacity: .5; cursor: not-allowed; }
+  .error-msg {
+    background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+    color: #fca5a5; border-radius: 8px; padding: .7rem 1rem;
+    font-size: .85rem; margin-top: 1rem; display: none;
+  }
+  .error-msg.show { display: block; animation: fadeUp .3s ease; }
+  .progress-log {
+    margin-top: 1.2rem; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: .8rem 1rem; font-size: .78rem; color: var(--muted);
+    display: none; max-height: 150px; overflow-y: auto; line-height: 2;
+  }
+  .progress-log.show { display: block; }
+  .log-line { animation: fadeUp .2s ease; }
+  .log-ok   { color: var(--success); }
+  .log-spin { color: var(--accent); }
+  .log-warn { color: var(--warn); }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,.3); border-top-color: #000;
+    border-radius: 50%; animation: spin .6s linear infinite;
+    margin-right: 6px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #page-result { flex-direction: column; }
+  .result-header {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .btn-back {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); padding: .4rem .9rem; border-radius: 6px;
+    cursor: pointer; font-size: .85rem; font-family: inherit;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+  .result-meta { flex: 1; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
+  .meta-chip {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: .3rem .8rem; font-size: .8rem;
+  }
+  .meta-chip span { color: var(--accent); font-weight: 600; }
+  .btn-export {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: .45rem 1rem; border-radius: 6px;
+    cursor: pointer; font-size: .85rem; font-family: inherit;
+    transition: background .2s; margin-left: auto;
+  }
+  .btn-export:hover { background: var(--border); }
+  .table-wrap { flex: 1; overflow: auto; padding: 1.5rem 2rem 3rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 1700px; }
+  thead tr { background: var(--panel); position: sticky; top: 0; z-index: 10; }
+  th {
+    padding: .7rem .9rem; text-align: center; font-size: .7rem;
+    font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--muted); border-bottom: 2px solid var(--border); white-space: nowrap;
+  }
+  th.accent { color: var(--accent); }
+  .col-group { background: rgba(0,212,255,.04); border-bottom: 1px solid rgba(0,212,255,.15); }
+  .col-group th { font-size: .68rem; color: rgba(0,212,255,.6); padding: .4rem; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:hover { background: rgba(255,255,255,.025); }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.012); }
+  td { padding: .65rem .9rem; text-align: center; vertical-align: middle; white-space: nowrap; }
+  .badge { display: inline-block; padding: .2rem .55rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
+  .badge-pass    { background: rgba(34,211,160,.15); color: var(--success); }
+  .badge-fail    { background: rgba(239,68,68,.15);  color: var(--danger); }
+  .badge-neutral { background: rgba(100,116,139,.15); color: var(--muted); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── Scene filter ── */
+  .scene-filter {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  .scene-filter-header {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .65rem 2rem; cursor: pointer; user-select: none;
+    transition: background .15s;
+  }
+  .scene-filter-header:hover { background: rgba(255,255,255,.03); }
+  .scene-filter-title {
+    font-size: .72rem; font-weight: 600; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .scene-filter-summary {
+    font-size: .75rem; color: var(--accent); margin-left: .25rem;
+  }
+  .scene-filter-arrow {
+    margin-left: auto; color: var(--muted); font-size: .8rem;
+    transition: transform .25s; line-height: 1;
+  }
+  .scene-filter.collapsed .scene-filter-arrow { transform: rotate(-90deg); }
+  .scene-filter-body {
+    padding: .75rem 2rem 1rem;
+    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+    overflow: hidden; transition: max-height .3s ease, padding .3s ease, opacity .3s;
+    max-height: 200px; opacity: 1;
+  }
+  .scene-filter.collapsed .scene-filter-body {
+    max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; pointer-events: none;
+  }
+  .scene-chip {
+    padding: .28rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); color: var(--muted);
+    background: transparent; font-family: inherit;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .scene-chip.on {
+    background: rgba(0,212,255,.12); border-color: var(--accent); color: var(--accent);
+  }
+  .scene-chip-divider { width: 1px; height: 20px; background: var(--border); margin: 0 .25rem; }
+  .scene-batch-btn {
+    padding: .28rem .75rem; border-radius: 20px; font-size: .72rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); color: var(--muted);
+    background: transparent; font-family: inherit; letter-spacing: .5px;
+    transition: border-color .15s, color .15s;
+  }
+  .scene-batch-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+</style>
+</head>
+<body>
+
+<!-- Language bar (always visible, floats above both pages) -->
+<div class="lang-bar">
+  <select id="lang-select" class="lang-select" onchange="setLanguage(this.value)">
+    <option value="zh-TW">繁體中文</option>
+    <option value="zh-CN">简体中文</option>
+    <option value="en">English</option>
+  </select>
+  <span class="lang-disclaimer" id="lang-disclaimer">本網站使用AI翻譯，翻譯內容可能存在誤差。</span>
+</div>
+
+<!-- PAGE 1 -->
+<div id="page-search" class="page active">
+  <div class="search-card">
+    <div class="logo-wrap">
+      <div class="logo-icon"><img src="https://raw.githubusercontent.com/Rappy13/vr-system-api/main/public/res/Fire_away_icon.png" alt="icon" style="width:100%;height:100%;object-fit:contain;border-radius:inherit;"></div>
+      <div class="logo-title">FireAway XR</div>
+      <div class="logo-sub" data-i18n="subtitle">訓練紀錄查詢系統</div>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="input-serial">Email</label>
+      <input id="input-serial" class="field-input" type="text"
+             data-i18n-placeholder="placeholderEmail" placeholder="輸入Email" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field-group">
+      <label class="field-label" data-i18n="labelDate">訓練日期</label>
+      <div class="date-mode-toggle">
+        <button class="date-mode-btn active" id="btn-mode-single" data-i18n="modeSingle" onclick="setDateMode('single')">單日</button>
+        <button class="date-mode-btn" id="btn-mode-range" data-i18n="modeRange" onclick="setDateMode('range')">日期區間</button>
+      </div>
+      <!-- 單日 -->
+      <div id="date-single">
+        <input id="input-date" class="field-input" type="date">
+      </div>
+      <!-- 日期區間 -->
+      <div id="date-range" style="display:none">
+        <div class="date-range-wrap">
+          <input id="input-date-from" class="field-input" type="date">
+          <span class="date-range-sep">～</span>
+          <input id="input-date-to" class="field-input" type="date">
+        </div>
+      </div>
+    </div>
+    <button id="btn-query" class="btn-query" data-i18n="btnQuery" onclick="doQuery()">查詢訓練紀錄</button>
+    <a href="https://rappy13.github.io/vr-system-api/public/record_manual.html" target="_blank"
+       style="display:block;text-align:center;margin-top:.85rem;font-size:.8rem;color:var(--muted);text-decoration:none;transition:color .2s"
+       onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+      📖 <span data-i18n="userGuide">使用說明</span>
+    </a>
+    <div id="error-msg" class="error-msg"></div>
+    <div id="progress-log" class="progress-log"></div>
+  </div>
+</div>
+
+<!-- PAGE 2 -->
+<div id="page-result" class="page">
+  <div class="result-header">
+    <button class="btn-back" onclick="goBack()"><span data-i18n="btnBack">← 返回查詢</span></button>
+    <div class="result-meta">
+      <div class="meta-chip"><span data-i18n="labelUser">使用者：</span><span id="meta-serial">—</span></div>
+      <div class="meta-chip"><span data-i18n="labelDate2">日期：</span><span id="meta-date">—</span></div>
+      <div class="meta-chip" id="meta-count-chip">共 <span id="meta-count">0</span> 筆紀錄</div>
+    </div>
+    <button class="btn-export" onclick="exportCSV()">⬇ <span data-i18n="btnExport">匯出 CSV</span></button>
+    <a href="https://rappy13.github.io/vr-system-api/public/record_manual.html" target="_blank"
+       style="display:inline-flex;align-items:center;gap:.35rem;padding:.45rem 1rem;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.85rem;text-decoration:none;transition:border-color .2s,color .2s"
+       onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+       onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+      📖 <span data-i18n="userGuide">使用說明</span>
+    </a>
+  </div>
+
+  <!-- Scene filter -->
+  <div class="scene-filter" id="scene-filter">
+    <div class="scene-filter-header" onclick="toggleSceneFilter()">
+      <span class="scene-filter-title" data-i18n="sceneFilterTitle">場景篩選</span>
+      <span class="scene-filter-summary" id="scene-filter-summary">全部顯示</span>
+      <span class="scene-filter-arrow">▼</span>
+    </div>
+    <div class="scene-filter-body" id="scene-filter-body">
+      <button class="scene-batch-btn" data-i18n="selectAll" onclick="setAllScenes(true)">全選</button>
+      <button class="scene-batch-btn" data-i18n="selectNone" onclick="setAllScenes(false)">全不選</button>
+      <div class="scene-chip-divider"></div>
+      <!-- chips injected by JS -->
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr class="col-group">
+          <th colspan="1"></th>
+          <th colspan="4" data-i18n="thGroupBasic">基本資訊</th>
+          <th colspan="7" style="color:rgba(255,165,0,.7)" data-i18n="thGroupOps">操作評估</th>
+          <th colspan="4" data-i18n="thGroupResult">滅火結果</th>
+          <th colspan="1" style="color:rgba(251,191,36,.8)" data-i18n="thGroupRating">綜合評定</th>
+        </tr>
+        <tr>
+          <th>#</th>
+          <th class="accent" id="th-time" onclick="toggleTimeSort()"
+              style="cursor:pointer;user-select:none;white-space:nowrap">
+            <span data-i18n="thTime">時間</span> <span id="sort-arrow" style="font-size:.65rem;opacity:.7">↑</span>
+          </th>
+          <th class="accent" data-i18n="thStudentCode">學員代碼</th>
+          <th data-i18n="thScene">場景</th>
+          <th data-i18n="thOpCount">操作次數</th>
+          <th data-i18n="thSelectFE">選擇滅火器</th>
+          <th data-i18n="thTrial20s">20秒內試噴</th>
+          <th data-i18n="thTrialOutside">有效射程外試噴</th>
+          <th data-i18n="thTrialDistance">試噴距離</th>
+          <th data-i18n="thFireMaxRange">最大射程開始滅火</th>
+          <th data-i18n="thFireDistance">開始滅火距離</th>
+          <th data-i18n="thNoOilSplash">油不濺出(全程)</th>
+          <th data-i18n="thNoIntermittent">噴射無斷續</th>
+          <th data-i18n="thSuccess">滅火成功</th>
+          <th data-i18n="thCompleteTime">完成時間</th>
+          <th data-i18n="thSpWrong">特殊失誤</th>
+          <th data-i18n="thOtherDetails">其他操作細項</th>
+          <th data-i18n="thRating">綜合評定</th>
+        </tr>
+      </thead>
+      <tbody id="result-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const BASE = 'https://vr-system-api.onrender.com';
+let lastData = null;
+
+/* ══════════════════════════════════════════════════════════════════
+   I18N — 語言字典 (zh-TW / zh-CN / en)
+   ══════════════════════════════════════════════════════════════════ */
+let currentLang = 'zh-TW';
+
+const STRINGS = {
+  subtitle:        { 'zh-TW': '訓練紀錄查詢系統', 'zh-CN': '训练记录查询系统', 'en': 'Training Record Query System' },
+  placeholderEmail:{ 'zh-TW': '輸入Email', 'zh-CN': '输入Email', 'en': 'Enter Email' },
+  labelDate:       { 'zh-TW': '訓練日期', 'zh-CN': '训练日期', 'en': 'Training Date' },
+  modeSingle:      { 'zh-TW': '單日', 'zh-CN': '单日', 'en': 'Single Day' },
+  modeRange:       { 'zh-TW': '日期區間', 'zh-CN': '日期区间', 'en': 'Date Range' },
+  btnQuery:        { 'zh-TW': '查詢訓練紀錄', 'zh-CN': '查询训练记录', 'en': 'Query Training Records' },
+  btnQueryLoading: { 'zh-TW': '查詢中…', 'zh-CN': '查询中…', 'en': 'Querying…' },
+  userGuide:       { 'zh-TW': '使用說明', 'zh-CN': '使用说明', 'en': 'User Guide' },
+  btnBack:         { 'zh-TW': '← 返回查詢', 'zh-CN': '← 返回查询', 'en': '← Back to Query' },
+  labelUser:       { 'zh-TW': '使用者：', 'zh-CN': '用户：', 'en': 'User: ' },
+  labelDate2:      { 'zh-TW': '日期：', 'zh-CN': '日期：', 'en': 'Date: ' },
+  metaCountLabel:  { 'zh-TW': '共 {count} 筆紀錄', 'zh-CN': '共 {count} 条记录', 'en': '{count} records total' },
+  btnExport:       { 'zh-TW': '匯出 CSV', 'zh-CN': '导出 CSV', 'en': 'Export CSV' },
+  sceneFilterTitle:{ 'zh-TW': '場景篩選', 'zh-CN': '场景筛选', 'en': 'Scene Filter' },
+  sceneFilterAll:  { 'zh-TW': '全部顯示', 'zh-CN': '全部显示', 'en': 'Showing All' },
+  sceneFilterPart: { 'zh-TW': '顯示 {active} / {total} 個場景', 'zh-CN': '显示 {active} / {total} 个场景', 'en': 'Showing {active} / {total} scenes' },
+  selectAll:       { 'zh-TW': '全選', 'zh-CN': '全选', 'en': 'Select All' },
+  selectNone:      { 'zh-TW': '全不選', 'zh-CN': '全不选', 'en': 'Select None' },
+  thGroupBasic:    { 'zh-TW': '基本資訊', 'zh-CN': '基本信息', 'en': 'Basic Info' },
+  thGroupOps:      { 'zh-TW': '操作評估', 'zh-CN': '操作评估', 'en': 'Operation Assessment' },
+  thGroupResult:   { 'zh-TW': '滅火結果', 'zh-CN': '灭火结果', 'en': 'Extinguishing Result' },
+  thGroupRating:   { 'zh-TW': '綜合評定', 'zh-CN': '综合评定', 'en': 'Overall Rating' },
+  thTime:          { 'zh-TW': '時間', 'zh-CN': '时间', 'en': 'Time' },
+  thStudentCode:   { 'zh-TW': '學員代碼', 'zh-CN': '学员代码', 'en': 'Student Code' },
+  thScene:         { 'zh-TW': '場景', 'zh-CN': '场景', 'en': 'Scene' },
+  thOpCount:       { 'zh-TW': '操作次數', 'zh-CN': '操作次数', 'en': 'Operation Count' },
+  thSelectFE:      { 'zh-TW': '選擇滅火器', 'zh-CN': '选择灭火器', 'en': 'Extinguisher Selected' },
+  thTrial20s:      { 'zh-TW': '20秒內試噴', 'zh-CN': '20秒内试喷', 'en': 'Trial Spray Within 20s' },
+  thTrialOutside:  { 'zh-TW': '有效射程外試噴', 'zh-CN': '有效射程外试喷', 'en': 'Trial Spray Outside Range' },
+  thTrialDistance: { 'zh-TW': '試噴距離', 'zh-CN': '试喷距离', 'en': 'Trial Spray Distance' },
+  thFireMaxRange:  { 'zh-TW': '最大射程開始滅火', 'zh-CN': '最大射程开始灭火', 'en': 'Start at Max Range' },
+  thFireDistance:  { 'zh-TW': '開始滅火距離', 'zh-CN': '开始灭火距离', 'en': 'Start Distance' },
+  thNoOilSplash:   { 'zh-TW': '油不濺出(全程)', 'zh-CN': '油不溅出(全程)', 'en': 'No Oil Splash (Entire Process)' },
+  thNoIntermittent:{ 'zh-TW': '噴射無斷續', 'zh-CN': '喷射无断续', 'en': 'Continuous Spray' },
+  thSuccess:       { 'zh-TW': '滅火成功', 'zh-CN': '灭火成功', 'en': 'Extinguishing Success' },
+  thCompleteTime:  { 'zh-TW': '完成時間', 'zh-CN': '完成时间', 'en': 'Completion Time' },
+  thSpWrong:       { 'zh-TW': '特殊失誤', 'zh-CN': '特殊失误', 'en': 'Special Errors' },
+  thOtherDetails:  { 'zh-TW': '其他操作細項', 'zh-CN': '其他操作细项', 'en': 'Other Details' },
+  thRating:        { 'zh-TW': '綜合評定', 'zh-CN': '综合评定', 'en': 'Overall Rating' },
+  subIndexLabel:   { 'zh-TW': '第 {n} 次', 'zh-CN': '第 {n} 次', 'en': 'Attempt {n}' },
+  badgePass:       { 'zh-TW': '✔ 通過', 'zh-CN': '✔ 通过', 'en': '✔ Pass' },
+  badgeFail:       { 'zh-TW': '✘ 不通過', 'zh-CN': '✘ 不通过', 'en': '✘ Fail' },
+  badgeNone:       { 'zh-TW': '無', 'zh-CN': '无', 'en': 'None' },
+  boolPass:        { 'zh-TW': '通過', 'zh-CN': '通过', 'en': 'Pass' },
+  boolFail:        { 'zh-TW': '不通過', 'zh-CN': '不通过', 'en': 'Fail' },
+  dash:            { 'zh-TW': '—', 'zh-CN': '—', 'en': '—' },
+  csvFilePrefix:   { 'zh-TW': 'VR訓練', 'zh-CN': 'VR训练', 'en': 'VR_Training' },
+  errNoEmailOrCode:{ 'zh-TW': '請輸入學員代碼或 Email', 'zh-CN': '请输入学员代码或 Email', 'en': 'Please enter a student code or Email' },
+  errNoDate:       { 'zh-TW': '請選擇日期', 'zh-CN': '请选择日期', 'en': 'Please select a date' },
+  errNoDateRange:  { 'zh-TW': '請選擇起訖日期', 'zh-CN': '请选择起讫日期', 'en': 'Please select start and end dates' },
+  errDateOrder:    { 'zh-TW': '起始日期不可晚於結束日期', 'zh-CN': '起始日期不可晚于结束日期', 'en': 'Start date cannot be later than end date' },
+  errNoEmailFound: { 'zh-TW': '找不到該 Email，請確認後重試', 'zh-CN': '找不到该 Email，请确认后重试', 'en': 'Email not found, please check and try again' },
+  errNoCodeFound:  { 'zh-TW': '找不到該學員代碼，請確認後重試', 'zh-CN': '找不到该学员代码，请确认后重试', 'en': 'Student code not found, please check and try again' },
+  errNoUserData:   { 'zh-TW': '無法取得學員資料', 'zh-CN': '无法取得学员资料', 'en': 'Unable to retrieve student data' },
+  errNoRecords:    { 'zh-TW': '該學員查無任何訓練紀錄', 'zh-CN': '该学员查无任何训练记录', 'en': 'No training records found for this student' },
+  errNoRecordsForDate: { 'zh-TW': '在 {date} 查無訓練紀錄（共有 {count} 筆其他日期紀錄）', 'zh-CN': '在 {date} 查无训练记录（共有 {count} 条其他日期记录）', 'en': 'No records found on {date} ({count} records exist on other dates)' },
+  errAnalysisEmpty:{ 'zh-TW': '分析後無有效資料', 'zh-CN': '分析后无有效资料', 'en': 'No valid data after analysis' },
+  errGeneral:      { 'zh-TW': '發生錯誤：{msg}', 'zh-CN': '发生错误：{msg}', 'en': 'An error occurred: {msg}' },
+  logSearchingStudent: { 'zh-TW': '🔍 查詢學員資料…', 'zh-CN': '🔍 查询学员资料…', 'en': '🔍 Searching for student data…' },
+  logFoundStudent: { 'zh-TW': '✔ 找到學員', 'zh-CN': '✔ 找到学员', 'en': '✔ Student found' },
+  logLoadingRecords:{ 'zh-TW': '📋 載入訓練紀錄…', 'zh-CN': '📋 载入训练记录…', 'en': '📋 Loading training records…' },
+  logFoundRecords: { 'zh-TW': '✔ 找到 {count} 筆紀錄，開始分析…', 'zh-CN': '✔ 找到 {count} 条记录，开始分析…', 'en': '✔ Found {count} records, analyzing…' },
+  logNoPressData:  { 'zh-TW': '⚠ 第 {n} 筆無 press_data，記為失敗', 'zh-CN': '⚠ 第 {n} 条无 press_data，记为失败', 'en': '⚠ Record {n} has no press_data, marked as failed' },
+  logNoOpData:     { 'zh-TW': '無操作資料', 'zh-CN': '无操作资料', 'en': 'No operation data' },
+  logProcessingRecord: { 'zh-TW': '📋 處理第 {i} / {total} 筆紀錄（共 {count} 次操作）…', 'zh-CN': '📋 处理第 {i} / {total} 条记录（共 {count} 次操作）…', 'en': '📋 Processing record {i} / {total} ({count} operations)…' },
+  logAnalyzingOp:  { 'zh-TW': '⚙ 分析第 {i} 筆 / 操作 {j} / {total}…', 'zh-CN': '⚙ 分析第 {i} 条 / 操作 {j} / {total}…', 'en': '⚙ Analyzing record {i} / operation {j} of {total}…' },
+  logAnalyzeFailed:{ 'zh-TW': '⚠ 第 {i} 筆 / 操作 {j} 分析請求失敗', 'zh-CN': '⚠ 第 {i} 条 / 操作 {j} 分析请求失败', 'en': '⚠ Record {i} / operation {j} analysis request failed' },
+  logDone:         { 'zh-TW': '✔ 完成！共 {count} 筆', 'zh-CN': '✔ 完成！共 {count} 条', 'en': '✔ Done! {count} records total' },
+  ratingGold:      { 'zh-TW': '🥇 金牌高手 成功', 'zh-CN': '🥇 金牌高手 成功', 'en': '🥇 Gold Medal Expert – Success' },
+  ratingSilver:    { 'zh-TW': '🥈 銀牌高手 成功', 'zh-CN': '🥈 银牌高手 成功', 'en': '🥈 Silver Medal Expert – Success' },
+  ratingBronze:    { 'zh-TW': '🥉 銅牌高手 成功', 'zh-CN': '🥉 铜牌高手 成功', 'en': '🥉 Bronze Medal Expert – Success' },
+  ratingLucky70:   { 'zh-TW': '70分的僥倖成功', 'zh-CN': '70分的侥幸成功', 'en': 'Lucky Success (70 pts)' },
+  ratingLucky60:   { 'zh-TW': '60分的僥倖成功', 'zh-CN': '60分的侥幸成功', 'en': 'Lucky Success (60 pts)' },
+  ratingFail:      { 'zh-TW': '失敗', 'zh-CN': '失败', 'en': 'Failed' },
+  sp_upperPan:     { 'zh-TW': '先打上方油盤', 'zh-CN': '先打上方油盘', 'en': 'Hit Upper Oil Pan First' },
+  sp_backfire:     { 'zh-TW': '發生回火', 'zh-CN': '发生回火', 'en': 'Backfire Occurred' },
+  sp_wrongQuiz:    { 'zh-TW': '問答題選錯', 'zh-CN': '问答题选错', 'en': 'Wrong Quiz Answer' },
+  sp_wrongSource:  { 'zh-TW': '先打錯誤火源', 'zh-CN': '先打错误火源', 'en': 'Hit Wrong Fire Source First' },
+  sp_generic:      { 'zh-TW': '特殊錯誤', 'zh-CN': '特殊错误', 'en': 'Special Error' },
+  langDisclaimer:  { 'zh-TW': '本網站使用AI翻譯，翻譯內容可能存在誤差。', 'zh-CN': '本网站使用AI翻译，翻译内容可能存在误差。', 'en': 'This website uses AI translation; translated content may contain inaccuracies.' },
+};
+
+const SCENE_NAMES = {
+  'zh-TW': {0:'單層油盤',1:'雙層油盤',2:'障礙物油盤1',3:'障礙物油盤2',4:'水泥牆油盤',5:'電器火災',6:'電線火災',7:'油鍋火災',8:'瓦斯管線火災',9:'紙箱火災',10:'機車火災',11:'加熱設備火災',12:'B類油桶火災',13:'馬達接風管火災',14:'機台內部火災'},
+  'zh-CN': {0:'单层油盘',1:'双层油盘',2:'障碍物油盘1',3:'障碍物油盘2',4:'水泥墙油盘',5:'电器火灾',6:'电线火灾',7:'油锅火灾',8:'瓦斯管线火灾',9:'纸箱火灾',10:'机车火灾',11:'加热设备火灾',12:'B类油桶火灾',13:'马达接风管火灾',14:'机台内部火灾'},
+  'en':    {0:'Single-layer Oil Pan',1:'Double-layer Oil Pan',2:'Obstacle Oil Pan 1',3:'Obstacle Oil Pan 2',4:'Concrete Wall Oil Pan',5:'Electrical Fire',6:'Electrical Wire Fire',7:'Cooking Oil Fire',8:'Gas Pipeline Fire',9:'Cardboard Box Fire',10:'Motorcycle Fire',11:'Heating Equipment Fire',12:'Class B Oil Drum Fire',13:'Motor Duct Fire',14:'Internal Machine Fire'}
+};
+const FE_NAMES = {
+  'zh-TW': {0:'乾粉滅火器',1:'CO₂滅火器',2:'水滅火器',3:'住宅用滅火器',99:'未選擇滅火器'},
+  'zh-CN': {0:'干粉灭火器',1:'CO₂灭火器',2:'水灭火器',3:'住宅用灭火器',99:'未选择灭火器'},
+  'en':    {0:'Dry Powder Extinguisher',1:'CO₂ Extinguisher',2:'Water Extinguisher',3:'Residential Extinguisher',99:'No Extinguisher Selected'}
+};
+
+// Maps the exact zh-TW strings analyze_details.php can return for special_error.text
+// to a translation key, so they render correctly in every language.
+const SPECIAL_ERROR_KEYS = {
+  '無':         'none',
+  '先打上方油盤': 'sp_upperPan',
+  '發生回火':    'sp_backfire',
+  '問答題選錯':  'sp_wrongQuiz',
+  '先打錯誤火源': 'sp_wrongSource',
+  '特殊錯誤':    'sp_generic'
+};
+function translateSpecialError(rawText) {
+  if (rawText == null) return null;
+  if (rawText === '__unknown_error__') return t('sp_generic');
+  const key = SPECIAL_ERROR_KEYS[rawText];
+  if (key === 'none') return null;
+  if (key) return t(key);
+  return rawText; // unrecognized message from the API — shown as-is, untranslated
+}
+
+function t(key, vars) {
+  const dict = STRINGS[key];
+  let str = (dict && (dict[currentLang] || dict['zh-TW'])) || key;
+  if (vars) {
+    Object.keys(vars).forEach(k => { str = str.replace('{' + k + '}', vars[k]); });
+  }
+  return str;
+}
+function sceneLabel(id) { return (SCENE_NAMES[currentLang] || SCENE_NAMES['zh-TW'])[id] ?? `Scene ${id}`; }
+function feLabel(id)    { return (FE_NAMES[currentLang] || FE_NAMES['zh-TW'])[id] ?? `FE ${id}`; }
+function ratingText(key) {
+  const map = { gold:'ratingGold', silver:'ratingSilver', bronze:'ratingBronze', lucky70:'ratingLucky70', lucky60:'ratingLucky60', fail:'ratingFail' };
+  return t(map[key] || 'ratingFail');
+}
+
+function applyStaticTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+  document.getElementById('lang-disclaimer').textContent = t('langDisclaimer');
+  const btn = document.getElementById('btn-query');
+  if (btn && !btn.disabled) btn.textContent = t('btnQuery');
+  updateMetaCountChip();
+  updateSceneSummary();
+}
+function updateMetaCountChip() {
+  const tpl = t('metaCountLabel');
+  const parts = tpl.split('{count}');
+  const chip = document.getElementById('meta-count-chip');
+  const currentCount = document.getElementById('meta-count') ? document.getElementById('meta-count').textContent : '0';
+  chip.innerHTML = parts[0] + '<span id="meta-count">' + currentCount + '</span>' + (parts[1] || '');
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  document.getElementById('lang-select').value = lang;
+  applyStaticTranslations();
+  if (lastData) {
+    // Re-render dynamic, language-dependent content (scene chips, table rows)
+    renderTable(false);
+  }
+}
+
+const today = new Date().toISOString().slice(0,10);
+document.getElementById('input-date').value      = today;
+document.getElementById('input-date-from').value = today;
+document.getElementById('input-date-to').value   = today;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('page-search').classList.contains('active')) doQuery();
+});
+setLanguage('zh-TW');
+
+function log(msg, type = '') {
+  const box = document.getElementById('progress-log');
+  box.classList.add('show');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (type ? ' log-' + type : '');
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+function clearLog() {
+  const box = document.getElementById('progress-log');
+  box.innerHTML = '';
+  box.classList.remove('show');
+}
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('show');
+}
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+function goBack() {
+  showPage('search');
+  document.getElementById('error-msg').classList.remove('show');
+  clearLog();
+}
+
+// ── 取得顯示時間：優先 now_time，fallback fake_time ───────────────────────
+function getDisplayTime(gameData, rec) {
+  const nowTime = (gameData?.now_time || '').trim();
+  if (nowTime) return nowTime;
+  // fallback: fake_time（精確到分鐘）
+  return (rec.fake_time || rec.created_at || '').slice(0, 16).replace('T', ' ');
+}
+
+// ── Date mode ─────────────────────────────────────────────────────────────────
+let dateMode = 'single';
+function setDateMode(mode) {
+  dateMode = mode;
+  document.getElementById('btn-mode-single').classList.toggle('active', mode === 'single');
+  document.getElementById('btn-mode-range').classList.toggle('active', mode === 'range');
+  document.getElementById('date-single').style.display = mode === 'single' ? '' : 'none';
+  document.getElementById('date-range').style.display  = mode === 'range'  ? '' : 'none';
+}
+
+async function doQuery() {
+  const serial = document.getElementById('input-serial').value.trim();
+  const btn    = document.getElementById('btn-query');
+
+  // Date validation based on mode
+  let dateFrom, dateTo, dateLabel;
+  if (dateMode === 'single') {
+    const date = document.getElementById('input-date').value;
+    if (!date) { showError(t('errNoDate')); return; }
+    dateFrom = dateTo = date;
+    dateLabel = date;
+  } else {
+    dateFrom = document.getElementById('input-date-from').value;
+    dateTo   = document.getElementById('input-date-to').value;
+    if (!dateFrom || !dateTo) { showError(t('errNoDateRange')); return; }
+    if (dateFrom > dateTo)    { showError(t('errDateOrder')); return; }
+    dateLabel = dateFrom === dateTo ? dateFrom : `${dateFrom} ～ ${dateTo}`;
+  }
+
+  document.getElementById('error-msg').classList.remove('show');
+  clearLog();
+
+  if (!serial) { showError(t('errNoEmailOrCode')); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>' + t('btnQueryLoading');
+
+  try {
+    // Step 1: License → objectId
+    log(t('logSearchingStudent'), 'spin');
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(serial);
+    const licUrl  = isEmail
+      ? `${BASE}/api/load_license.php?email=${encodeURIComponent(serial)}`
+      : `${BASE}/api/load_license.php?serial_code=${encodeURIComponent(serial)}`;
+    const licRes  = await fetch(licUrl);
+    const licJson = await licRes.json();
+
+    if (!licJson.success || !licJson.data) {
+      showError(isEmail ? t('errNoEmailFound') : t('errNoCodeFound'));
+      return;
+    }
+    const licData  = Array.isArray(licJson.data) ? licJson.data[0] : licJson.data;
+    if (!licData) { showError(isEmail ? t('errNoEmailFound') : t('errNoCodeFound')); return; }
+    const objectId = licData.objectId;
+    if (!objectId) { showError(t('errNoUserData')); return; }
+    log(t('logFoundStudent'), 'ok');
+
+    // Step 2: VR Records
+    log(t('logLoadingRecords'), 'spin');
+    const recRes  = await fetch(`${BASE}/api/load_vr_record.php?user=${encodeURIComponent(objectId)}`);
+    const recJson = await recRes.json();
+
+    if (!recJson.success || !recJson.data?.length) {
+      showError(t('errNoRecords'));
+      return;
+    }
+
+    // Step 3: Date filter — 支援單日與區間
+    const filtered = recJson.data.filter(r => {
+      const recDate = (r.fake_time || r.created_at || '').slice(0, 10);
+      return recDate >= dateFrom && recDate <= dateTo;
+    });
+    if (!filtered.length) {
+      showError(t('errNoRecordsForDate', { date: dateLabel, count: recJson.data.length }));
+      return;
+    }
+    log(t('logFoundRecords', { count: filtered.length }), 'ok');
+
+    // Step 4: analyze_details per record
+    const results = [];
+
+    for (let i = 0; i < filtered.length; i++) {
+      const rec = filtered[i];
+      const pressRaw  = rec.press_data || '{}';
+      const pressObj  = typeof pressRaw === 'string' ? JSON.parse(pressRaw) : pressRaw;
+      const dataItems = pressObj.data || [];
+      const sceneId   = parseInt(rec.scene ?? 0);
+
+      // 無 press_data：記為失敗，時間用 fake_time
+      if (!dataItems.length) {
+        log(t('logNoPressData', { n: i+1 }), 'warn');
+        results.push({
+          date:            (rec.fake_time || rec.created_at || dateFrom).slice(0,16).replace('T',' '),
+          player_id:       rec.player_id || '',
+          sceneId:         sceneId,
+          feId:            null,
+          sub_index:       null,
+          count:           0,
+          trial_in_20s:    null,
+          trial_outside:   null,
+          trial_distance:  null,
+          fire_max_range:  null,
+          fire_distance:   null,
+          no_oil_splash:   null,
+          no_intermittent: null,
+          is_success:      false,
+          kill_time:       null,
+          sp_wrong:        null,
+          other_details:   'logNoOpData',
+          ratingKey:       'fail',
+        });
+        continue;
+      }
+
+      log(t('logProcessingRecord', { i: i+1, total: filtered.length, count: dataItems.length }), 'spin');
+
+      // 每筆 record 內的操作次數倒序排列（最後一次在最上面）
+      const reversedItems = [...dataItems].reverse();
+
+      for (let j = 0; j < reversedItems.length; j++) {
+        const gameData  = reversedItems[j];
+        const feId      = parseInt(gameData.FE_id ?? 0);
+        const timeLimit = parseFloat(gameData.FE_limit ?? 60);
+
+        log(t('logAnalyzingOp', { i: i+1, j: dataItems.length - j, total: dataItems.length }), 'spin');
+
+        let d = {};
+        try {
+          const aRes = await fetch(`${BASE}/api/analyze_details.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: [gameData], id: sceneId, FireExtin_id: feId, TimeLimit: timeLimit })
+          });
+          const aJson = await aRes.json();
+          d = aJson?.data ?? {};
+        } catch(e) { log(t('logAnalyzeFailed', { i: i+1, j: j+1 }), 'warn'); }
+
+        const isSuccess = parseInt(gameData.is_success ?? 0);
+        const isSpWrong = parseInt(gameData.is_sp_wrong ?? 0);
+        const gameTimer = parseFloat(gameData.kill_fire_time ?? 0);
+        const rawPressData = Array.isArray(gameData.press_data) ? gameData.press_data : [];
+
+        let ratingResult;
+        if (!isSuccess) {
+          ratingResult = { key: 'fail', score: 0 };
+        } else {
+          ratingResult = analyzeGame(sceneId, feId, gameTimer, timeLimit, rawPressData, rawPressData.length, isSuccess, parseInt(gameData.is_outfire ?? 0), isSpWrong);
+        }
+
+        // 場景 5-8：隱藏試噴相關 5 項；場景 9+：隱藏油不濺出
+        const hideFive = sceneId >= 5 && sceneId <= 8;
+        const hideOil  = sceneId >= 9;
+
+        results.push({
+          // ── 優先用 gameData.now_time，沒有才用 fake_time ──
+          date:            getDisplayTime(gameData, rec),
+          player_id:       rec.player_id || '',
+          sceneId:         sceneId,
+          feId:            feId,
+          sub_index:       dataItems.length > 1 ? (dataItems.length - j) : null,
+          count:           gameData.press_count ?? 0,
+          trial_in_20s:    d.check_start_time?.pass,
+          trial_outside:   hideFive ? 'N/A' : d.check_first_distance?.pass,
+          trial_distance:  hideFive ? 'N/A' : (d.check_first_distance?.value ?? null),
+          fire_max_range:  hideFive ? 'N/A' : d.check_second_distance?.pass,
+          fire_distance:   hideFive ? 'N/A' : (d.check_second_distance?.value ?? null),
+          no_oil_splash:   (hideFive || hideOil) ? 'N/A' : d.check_no_outfire?.pass,
+          no_intermittent: d.check_press_count?.pass,
+          is_success:      d.check_success?.pass ?? (isSuccess === 1),
+          kill_time:       d.kill_time || (parseFloat(gameData.kill_fire_time ?? 0).toFixed(2) + 's'),
+          sp_wrong:        d.special_error?.text ?? (isSpWrong ? '__unknown_error__' : null),
+          other_details:   null,
+          ratingKey:       ratingResult.key,
+        });
+      }
+    }
+
+    if (!results.length) { showError(t('errAnalysisEmpty')); return; }
+    log(t('logDone', { count: results.length }), 'ok');
+    const displayName = licData.user_name?.trim() || licData.email?.trim() || serial;
+    lastData = { serial_code: serial, display_name: displayName, date: dateLabel, records: results };
+
+    setTimeout(() => { renderTable(); showPage('result'); }, 400);
+
+  } catch(e) {
+    console.error(e);
+    showError(t('errGeneral', { msg: e.message }));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = t('btnQuery');
+  }
+}
+
+// ── Scene filter state (keyed by numeric sceneId so it survives language switches) ──
+let activeScenes = new Set();
+
+function initSceneFilter() {
+  // Reset to all on
+  const presentSceneIds = [...new Set(lastData.records.map(r => r.sceneId))].sort((a,b) => a-b);
+  activeScenes = new Set(presentSceneIds);
+  // Expand panel
+  document.getElementById('scene-filter').classList.remove('collapsed');
+  const body = document.getElementById('scene-filter-body');
+  [...body.children].forEach(el => {
+    if (!el.classList.contains('scene-batch-btn') && !el.classList.contains('scene-chip-divider'))
+      el.remove();
+  });
+  presentSceneIds.forEach(id => {
+    const btn = document.createElement('button');
+    btn.className = 'scene-chip on';
+    btn.textContent = sceneLabel(id);
+    btn.dataset.sceneId = id;
+    btn.onclick = () => toggleScene(id, btn);
+    body.appendChild(btn);
+  });
+  updateSceneSummary();
+}
+
+function refreshSceneChipLabels() {
+  document.querySelectorAll('.scene-chip').forEach(chip => {
+    chip.textContent = sceneLabel(parseInt(chip.dataset.sceneId));
+  });
+}
+
+function toggleSceneFilter() {
+  document.getElementById('scene-filter').classList.toggle('collapsed');
+}
+
+function toggleScene(id, btn) {
+  if (activeScenes.has(id)) {
+    activeScenes.delete(id);
+    btn.classList.remove('on');
+  } else {
+    activeScenes.add(id);
+    btn.classList.add('on');
+  }
+  updateSceneSummary();
+  applySceneFilter();
+}
+
+function setAllScenes(on) {
+  const chips = document.querySelectorAll('.scene-chip');
+  chips.forEach(chip => {
+    const id = parseInt(chip.dataset.sceneId);
+    if (on) { activeScenes.add(id); chip.classList.add('on'); }
+    else    { activeScenes.delete(id); chip.classList.remove('on'); }
+  });
+  updateSceneSummary();
+  applySceneFilter();
+}
+
+function updateSceneSummary() {
+  const chips   = document.querySelectorAll('.scene-chip');
+  const total   = chips.length;
+  const active  = activeScenes.size;
+  const summary = document.getElementById('scene-filter-summary');
+  summary.textContent = (total === 0 || active === total) ? t('sceneFilterAll') : t('sceneFilterPart', { active, total });
+}
+
+function applySceneFilter() {
+  const rows = document.querySelectorAll('#result-body tr');
+  let visible = 0;
+  rows.forEach(tr => {
+    const id = parseInt(tr.dataset.sceneId);
+    const show = activeScenes.has(id);
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('meta-count').textContent = visible;
+}
+
+// ── Time sort state ───────────────────────────────────────────────────────────
+let timeSortAsc = true; // 預設正序（早→晚）
+
+function toggleTimeSort() {
+  timeSortAsc = !timeSortAsc;
+  document.getElementById('sort-arrow').textContent = timeSortAsc ? '↑' : '↓';
+  renderTable(false); // re-render without resetting filter
+}
+
+function renderTable(resetFilter = true) {
+  document.getElementById('meta-serial').textContent = lastData.display_name;
+  document.getElementById('meta-date').textContent   = lastData.date;
+  updateMetaCountChip();
+
+  // Sort records by date string
+  const sorted = [...lastData.records].sort((a, b) => {
+    const ta = a.date || '';
+    const tb = b.date || '';
+    return timeSortAsc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+  });
+
+  const tbody = document.getElementById('result-body');
+  tbody.innerHTML = '';
+  sorted.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.sceneId = r.sceneId;
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+      <td style="font-family:'Rajdhani',sans-serif;font-size:.8rem;color:var(--text)">${esc(r.date)}</td>
+      <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
+      <td>${esc(sceneLabel(r.sceneId))}</td>
+      <td style="font-family:'Rajdhani',sans-serif">${t('subIndexLabel', { n: r.sub_index != null ? r.sub_index : 1 })}</td>
+      <td>${r.feId == null ? dashSpan() : esc(feLabel(r.feId))}</td>
+      <td>${boolCell(r.trial_in_20s)}</td>
+      <td>${boolCell(r.trial_outside)}</td>
+      <td>${distCell(r.trial_distance)}</td>
+      <td>${boolCell(r.fire_max_range)}</td>
+      <td>${distCell(r.fire_distance)}</td>
+      <td>${boolCell(r.no_oil_splash)}</td>
+      <td>${boolCell(r.no_intermittent)}</td>
+      <td>${boolCell(r.is_success)}</td>
+      <td style="font-family:'Rajdhani',sans-serif">${r.kill_time ? esc(r.kill_time) : dashSpan()}</td>
+      <td>${spCell(r.sp_wrong)}</td>
+      <td style="max-width:180px;white-space:normal;text-align:left;font-size:.78rem">${r.other_details ? esc(t(r.other_details)) : dashSpan()}</td>
+      <td>${ratingCell(r.ratingKey)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // init or re-apply filter
+  if (resetFilter) {
+    timeSortAsc = true;
+    document.getElementById('sort-arrow').textContent = '↑';
+    initSceneFilter();
+  } else {
+    refreshSceneChipLabels();
+    applySceneFilter();
+  }
+}
+
+function dashSpan() { return `<span style="color:var(--muted)">${t('dash')}</span>`; }
+function esc(v) {
+  if (v === null || v === undefined || v === '' || v === '—')
+    return dashSpan();
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function boolCell(v) {
+  if (v === 'N/A' || v === null || v === undefined) return dashSpan();
+  if (v === true  || v === 1) return `<span class="badge badge-pass">${t('badgePass')}</span>`;
+  if (v === false || v === 0) return `<span class="badge badge-fail">${t('badgeFail')}</span>`;
+  return `<span class="badge badge-neutral">${esc(v)}</span>`;
+}
+function boolStr(v) {
+  if (v === 'N/A' || v === null || v === undefined) return t('dash');
+  if (v === true  || v === 1) return t('boolPass');
+  if (v === false || v === 0) return t('boolFail');
+  return v ?? '';
+}
+function distCell(v) {
+  if (v === 'N/A' || v === null || v === undefined || v === '') return dashSpan();
+  const n = parseFloat(v);
+  return isNaN(n) ? esc(v) : `<span style="font-family:'Rajdhani',sans-serif">${n.toFixed(2)} m</span>`;
+}
+function spCell(rawText) {
+  const translated = translateSpecialError(rawText);
+  if (translated === null) return `<span class="badge badge-neutral">${t('badgeNone')}</span>`;
+  return `<span class="badge badge-fail">${esc(translated)}</span>`;
+}
+function ratingCell(key) {
+  const text = ratingText(key);
+  if (key === 'gold')   return `<span style="color:#fbbf24;font-weight:700">${text}</span>`;
+  if (key === 'silver') return `<span style="color:#94a3b8;font-weight:700">${text}</span>`;
+  if (key === 'bronze') return `<span style="color:#cd7f32;font-weight:700">${text}</span>`;
+  if (key === 'fail')   return `<span class="badge badge-fail">${text}</span>`;
+  if (key === 'lucky70')return `<span class="badge" style="background:rgba(245,158,11,.15);color:var(--warn)">${text}</span>`;
+  if (key === 'lucky60')return `<span class="badge" style="background:rgba(100,116,139,.15);color:var(--muted)">${text}</span>`;
+  return `<span class="badge badge-pass">${text}</span>`;
+}
+
+function exportCSV() {
+  if (!lastData) return;
+  const headers = ['#', t('thTime'), t('thStudentCode'), t('thScene'), t('thOpCount'), t('thSelectFE'),
+    t('thTrial20s'), t('thTrialOutside'), t('thTrialDistance') + '(m)', t('thFireMaxRange'), t('thFireDistance') + '(m)',
+    t('thNoOilSplash'), t('thNoIntermittent'), t('thSuccess'), t('thCompleteTime'), t('thSpWrong'), t('thOtherDetails'), t('thRating')];
+  // Only export records whose scene is currently active, sorted by time ascending
+  const filtered = lastData.records
+    .filter(r => activeScenes.has(r.sceneId))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const rows = filtered.map((r, i) => {
+    const spDisplay = translateSpecialError(r.sp_wrong) ?? t('badgeNone');
+    return [
+      i+1, r.date, r.player_id, sceneLabel(r.sceneId),
+      t('subIndexLabel', { n: r.sub_index != null ? r.sub_index : 1 }),
+      r.feId == null ? t('dash') : feLabel(r.feId),
+      boolStr(r.trial_in_20s), boolStr(r.trial_outside), r.trial_distance,
+      boolStr(r.fire_max_range), r.fire_distance, boolStr(r.no_oil_splash), boolStr(r.no_intermittent),
+      boolStr(r.is_success), r.kill_time || t('dash'), spDisplay, r.other_details ? t(r.other_details) : t('dash'),
+      ratingText(r.ratingKey).replace(/🥇\s*/,'').replace(/🥈\s*/,'').replace(/🥉\s*/,'')
+    ];
+  }).map(row => row.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `${t('csvFilePrefix')}_${lastData.display_name}_${lastData.date}.csv`;
+  a.click();
+}
+
+// ── Rating logic ────────────────────────────────────────────────────────────
+function analyzeGame(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, outfire, sp_wrong) {
+  if (id < 5)       return analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong);
+  else if (id <= 8) return analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong);
+  else              return analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong);
+}
+function analyzeScenes0to4(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, outfire, sp_wrong) {
+  let count = 0;
+  if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
+    if (pressData[0].Start_Time <= 20) count++;
+    switch (FireExtin_id) {
+      case 0: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 5) count++; break;
+      case 1: if (pressData[0].Distance >= 4) count++; if (pressData[1].Distance >= 2) count++; break;
+      case 2: case 3: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++; break;
+    }
+    if (!outfire)        count++;
+    if (pressCount <= 2) count++;
+    if (isSuccess == 1)  count++;
+  }
+  if (count >= 6 && !sp_wrong) return getPerfectRating(id, FireExtin_id, game_timer);
+  if (sp_wrong) count--; else count++;
+  return { key: count >= 5 ? 'lucky70' : 'lucky60', score: count >= 5 ? 70 : 60 };
+}
+function analyzeScenes5to8(id, FireExtin_id, game_timer, pressData, pressCount, isSuccess, sp_wrong) {
+  let count = 0;
+  if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
+    if (pressData[0].Start_Time < 20) count++;
+    if (pressCount == 2)  count++;
+    if (isSuccess == 1)   count++;
+  }
+  if (count >= 3 && !sp_wrong) return getPerfectRatingScenes5to8(id, FireExtin_id, game_timer);
+  if (sp_wrong) count--; else count++;
+  return { key: count >= 2 ? 'lucky70' : 'lucky60', score: count >= 2 ? 70 : 60 };
+}
+function analyzeScenes9Plus(id, FireExtin_id, game_timer, TimeLimit, pressData, pressCount, isSuccess, sp_wrong) {
+  let count = 0;
+  if (pressCount > 1 && pressData[0].Continue_Time < 1.5) {
+    if (pressData[0].Start_Time <= 20) count++;
+    switch (FireExtin_id) {
+      case 0: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 5) count++; break;
+      case 1: if (pressData[0].Distance >= 4) count++; if (pressData[1].Distance >= 2) count++; break;
+      case 2: case 3: if (pressData[0].Distance >= 6) count++; if (pressData[1].Distance >= 3 && pressData[1].Distance < 6) count++; break;
+    }
+    if (pressCount <= 2) count++;
+    if (isSuccess == 1)  count++;
+  }
+  if (count >= 5 && !sp_wrong) return getPerfectRatingScenes9Plus(id, FireExtin_id, game_timer);
+  if (TimeLimit > 0) count++; else count--;
+  if (sp_wrong) count--; else count++;
+  return { key: count > 5 ? 'lucky70' : 'lucky60', score: count > 5 ? 70 : 60 };
+}
+function getPerfectRating(id, FireExtin_id, game_timer) {
+  const t = {
+    0:{0:[12,15],1:[13,15],2:[11,12],3:[11,12]},
+    1:{0:[16,18],1:[17,18],2:[18,20],3:[18,20]},
+    2:{0:[13,15],1:[15,16],2:[12,14],3:[12,14]},
+    3:{0:[16,18],1:[17,18],2:[17,19],3:[17,19]},
+    4:{0:[12,13],1:[14,15],2:[11,12],3:[11,12]}
+  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { key:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { key:'silver', score:90  };
+  return                                                { key:'bronze', score:80  };
+}
+function getPerfectRatingScenes5to8(id, FireExtin_id, game_timer) {
+  const t = {
+    5:{0:[7,8],  1:[7,8],  2:[6,7],  3:[6,7]},
+    6:{0:[8,9],  1:[8,9],  2:[6,7],  3:[6,7]},
+    7:{0:[999,999],1:[999,999],2:[999,999],3:[7,8]},
+    8:{0:[10,11],1:[10,11],2:[8,9],  3:[8,9]}
+  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { key:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { key:'silver', score:90  };
+  return                                                { key:'bronze', score:80  };
+}
+function getPerfectRatingScenes9Plus(id, FireExtin_id, game_timer) {
+  const t = {
+    9: {0:[9,10], 1:[999,999],2:[9,10], 3:[9,10]},
+    10:{0:[13,14],1:[13,14], 2:[13,14],3:[13,14]},
+    11:{0:[14,15],1:[14,15], 2:[14,15],3:[14,15]},
+    12:{0:[11,14],1:[13,14], 2:[13,14],3:[13,14]},
+    13:{0:[12,13],1:[13,14], 2:[13,14],3:[13,14]},
+    14:{0:[14,15],1:[15,16], 2:[15,16],3:[15,16]}
+  };
+  const th = (t[id]??{})[FireExtin_id]??[999,999];
+  if (game_timer < th[0])                        return { key:'gold',   score:100 };
+  if (game_timer >= th[0] && game_timer < th[1]) return { key:'silver', score:90  };
+  return                                                { key:'bronze', score:80  };
+}
+</script>
+</body>
+</html>

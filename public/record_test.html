@@ -384,6 +384,7 @@
 <script>
 const BASE = 'https://vr-system-api.onrender.com';
 let lastData = null;
+let activeScenes = new Set();
 
 /* ══════════════════════════════════════════════════════════════════
    I18N — 語言字典 (zh-TW / zh-CN / en)
@@ -785,8 +786,6 @@ async function doQuery() {
 }
 
 // ── Scene filter state (keyed by numeric sceneId so it survives language switches) ──
-let activeScenes = new Set();
-
 function initSceneFilter() {
   // Reset to all on
   const presentSceneIds = [...new Set(lastData.records.map(r => r.sceneId))].sort((a,b) => a-b);

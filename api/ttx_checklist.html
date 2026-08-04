@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金宏安全_兵推整備清單</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EDEAE1;
+    --panel: #FBF9F3;
+    --panel-alt: #F3EFE3;
+    --ink: #22271F;
+    --ink-soft: #4A4A40;
+    --muted: #83795F;
+    --border: #D8D1BC;
+    --accent: #B8431D;
+    --accent-dim: #E9DCD1;
+    --accent-2: #1F6E63;
+    --accent-2-dim: #DCE7E0;
+    --danger: #B8431D;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 24px 100px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+  .title-block {
+    flex: 1;
+    min-width: 260px;
+  }
+  .title-block .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+    max-width: 46ch;
+  }
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1.5px solid var(--ink);
+    background: var(--panel);
+    color: var(--ink);
+    border-radius: 3px;
+    padding: 9px 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: transform 0.08s ease;
+  }
+  .btn:hover { background: var(--panel-alt); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary {
+    background: var(--ink);
+    color: var(--panel);
+    border-color: var(--ink);
+  }
+  .btn.primary:hover { background: #333a2b; }
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+  }
+  .stat-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+  }
+  .stat-pill b { color: var(--ink); font-weight: 500; }
+  .section-label {
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+  }
+  .scenario-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    gap: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+  .scenario-field label {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .scenario-input {
+    width: 100%;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .scenario-input:focus {
+    outline: none;
+    border-color: var(--accent-2);
+  }
+  .toggle-group {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .toggle-btn {
+    flex: 1;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    background: var(--panel-alt);
+    border: none;
+    padding: 8px 6px;
+    cursor: pointer;
+  }
+  .toggle-btn:first-child { border-right: 1px solid var(--border); }
+  .toggle-btn:hover { background: #E9E4D5; }
+  .toggle-btn.active {
+    background: var(--accent-2);
+    color: #F2F7F5;
+  }
+  @media (max-width: 620px) {
+    .scenario-panel { grid-template-columns: 1fr; }
+  }
+  .category {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .category-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-alt);
+  }
+  .code-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+    min-width: 28px;
+    text-align: center;
+  }
+  .category-name {
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: 0.01em;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    flex: 1;
+    min-width: 0;
+    padding: 4px 2px;
+    border-bottom: 1.5px dashed transparent;
+  }
+  .category-name:hover, .category-name:focus {
+    border-bottom: 1.5px dashed var(--muted);
+    outline: none;
+  }
+  .item-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: rgba(0,0,0,0.06); color: var(--danger); }
+  .item-list {
+    padding: 6px 16px 10px;
+  }
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+  }
+  .item-index {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 20px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .item-input {
+    flex: 1;
+    min-width: 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    padding: 7px 2px;
+  }
+  .item-input:focus {
+    outline: none;
+    border-bottom: 1px solid var(--accent-2);
+  }
+  .item-input::placeholder { color: #B4AE9A; }
+  .add-item-row {
+    padding: 8px 16px 14px;
+  }
+  .add-item-btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    color: var(--accent-2);
+    background: var(--accent-2-dim);
+    border: 1px dashed var(--accent-2);
+    border-radius: 4px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .add-item-btn:hover { background: #CFE0D9; }
+  .add-category-block {
+    display: flex;
+    gap: 8px;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border);
+  }
+  .add-category-input {
+    flex: 1;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--ink);
+  }
+  .add-category-input:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+  .empty-note {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 6px 2px 10px;
+    font-style: italic;
+  }
+  .plus-icon {
+    width: 14px; height: 14px;
+    display: inline-block;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--panel);
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  @media (max-width: 560px) {
+    h1 { font-size: 27px; }
+    header { align-items: flex-start; }
+    .header-actions { width: 100%; }
+    .btn { flex: 1; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <p class="eyebrow">兵棋推演 · 事前整備</p>
+      <h1>小組設定好情境後先不要討論,各自先列要做的事</h1>
+      <p class="subtitle">討論做法之前,先把情境下所有要做的事一一列出。分類只是提醒,想到什麼先寫下來,順序跟是誰要做留到下一步再排。</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="copyBtn">
+        <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="1"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
+        複製清單
+      </button>
+      <button class="btn primary" id="printBtn">
+        <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        列印
+      </button>
+    </div>
+  </header>
+
+  <p class="section-label">情境設定</p>
+  <div class="scenario-panel">
+    <div class="scenario-field">
+      <label for="locationInput">火災發生地點</label>
+      <input type="text" class="scenario-input" id="locationInput" placeholder="例如:二樓手術室">
+    </div>
+    <div class="scenario-field">
+      <label for="levelInput">火災等級</label>
+      <input type="text" class="scenario-input" id="levelInput" placeholder="例如:2級">
+    </div>
+    <div class="scenario-field">
+      <label>發現方式</label>
+      <div class="toggle-group" id="discoveryToggle">
+        <button type="button" class="toggle-btn" data-value="人為">人為發現</button>
+        <button type="button" class="toggle-btn" data-value="警報器">警報器觸發</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <div id="categories"></div>
+
+  <div class="add-category-block">
+    <input type="text" class="add-category-input" id="newCategoryInput" placeholder="新增分類,例如:設備確認">
+    <button class="btn" id="addCategoryBtn">
+      <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      新增分類
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CODES = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
+
+  let state = {
+    scenario: { location: '', level: '', discovery: null },
+    categories: [
+      { name: '通報', items: [''] },
+      { name: '查證', items: [''] },
+      { name: '疏散', items: [''] },
+      { name: '醫療處置', items: [''] },
+      { name: '清點', items: [''] }
+    ]
+  };
+
+  const categoriesEl = document.getElementById('categories');
+  const statsRowEl = document.getElementById('statsRow');
+
+  function render() {
+    categoriesEl.innerHTML = '';
+    let totalItems = 0;
+
+    state.categories.forEach((cat, cIdx) => {
+      const filled = cat.items.filter(i => i.trim() !== '').length;
+      totalItems += filled;
+
+      const card = document.createElement('div');
+      card.className = 'category';
+
+      const head = document.createElement('div');
+      head.className = 'category-head';
+
+      const codeTag = document.createElement('span');
+      codeTag.className = 'code-tag';
+      codeTag.textContent = CODES[cIdx % CODES.length];
+      head.appendChild(codeTag);
+
+      const nameInput = document.createElement('input');
+      nameInput.className = 'category-name';
+      nameInput.value = cat.name;
+      nameInput.setAttribute('aria-label', '分類名稱');
+      nameInput.addEventListener('input', e => {
+        cat.name = e.target.value;
+      });
+      head.appendChild(nameInput);
+
+      const countEl = document.createElement('span');
+      countEl.className = 'item-count';
+      countEl.textContent = filled + ' 項';
+      head.appendChild(countEl);
+
+      const delCatBtn = document.createElement('button');
+      delCatBtn.className = 'icon-btn';
+      delCatBtn.setAttribute('aria-label', '刪除分類');
+      delCatBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+      delCatBtn.addEventListener('click', () => {
+        state.categories.splice(cIdx, 1);
+        render();
+      });
+      head.appendChild(delCatBtn);
+
+      card.appendChild(head);
+
+      const list = document.createElement('div');
+      list.className = 'item-list';
+
+      if (cat.items.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-note';
+        empty.textContent = '尚未列出項目';
+        list.appendChild(empty);
+      }
+
+      cat.items.forEach((val, iIdx) => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+
+        const idx = document.createElement('span');
+        idx.className = 'item-index';
+        idx.textContent = (iIdx + 1) + '.';
+        row.appendChild(idx);
+
+        const input = document.createElement('input');
+        input.className = 'item-input';
+        input.type = 'text';
+        input.value = val;
+        input.placeholder = '要做的事,例如:通知手術室內人員';
+        input.addEventListener('input', e => {
+          cat.items[iIdx] = e.target.value;
+          countEl.textContent = cat.items.filter(i => i.trim() !== '').length + ' 項';
+          updateStats();
+        });
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            cat.items.splice(iIdx + 1, 0, '');
+            render();
+            focusItem(cIdx, iIdx + 1);
+          }
+        });
+        row.appendChild(input);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn';
+        delBtn.setAttribute('aria-label', '刪除項目');
+        delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+        delBtn.addEventListener('click', () => {
+          cat.items.splice(iIdx, 1);
+          render();
+        });
+        row.appendChild(delBtn);
+
+        list.appendChild(row);
+      });
+
+      card.appendChild(list);
+
+      const addRow = document.createElement('div');
+      addRow.className = 'add-item-row';
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-item-btn';
+      addBtn.innerHTML = '<svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> 新增項目';
+      addBtn.addEventListener('click', () => {
+        cat.items.push('');
+        render();
+        focusItem(cIdx, cat.items.length - 1);
+      });
+      addRow.appendChild(addBtn);
+      card.appendChild(addRow);
+
+      categoriesEl.appendChild(card);
+    });
+
+    statsRowEl.innerHTML = '';
+    const catPill = document.createElement('span');
+    catPill.className = 'stat-pill';
+    catPill.innerHTML = '<b>' + state.categories.length + '</b> 個分類';
+    statsRowEl.appendChild(catPill);
+    const itemPill = document.createElement('span');
+    itemPill.className = 'stat-pill';
+    itemPill.innerHTML = '<b>' + totalItems + '</b> 件已列出的事';
+    statsRowEl.appendChild(itemPill);
+  }
+
+  function updateStats() {
+    let totalItems = 0;
+    state.categories.forEach(cat => {
+      totalItems += cat.items.filter(i => i.trim() !== '').length;
+    });
+    const itemPill = statsRowEl.children[1];
+    if (itemPill) itemPill.innerHTML = '<b>' + totalItems + '</b> 件已列出的事';
+  }
+
+  function focusItem(cIdx, iIdx) {
+    requestAnimationFrame(() => {
+      const cards = categoriesEl.querySelectorAll('.category');
+      const rows = cards[cIdx].querySelectorAll('.item-row .item-input');
+      if (rows[iIdx]) rows[iIdx].focus();
+    });
+  }
+
+  document.getElementById('locationInput').addEventListener('input', e => {
+    state.scenario.location = e.target.value;
+  });
+  document.getElementById('levelInput').addEventListener('input', e => {
+    state.scenario.level = e.target.value;
+  });
+  document.querySelectorAll('#discoveryToggle .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.scenario.discovery = btn.dataset.value;
+      document.querySelectorAll('#discoveryToggle .toggle-btn').forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+    });
+  });
+
+  document.getElementById('addCategoryBtn').addEventListener('click', () => {
+    const input = document.getElementById('newCategoryInput');
+    const name = input.value.trim();
+    if (!name) return;
+    state.categories.push({ name, items: [''] });
+    input.value = '';
+    render();
+  });
+
+  document.getElementById('newCategoryInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      document.getElementById('addCategoryBtn').click();
+    }
+  });
+
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    let text = '兵推整備清單 — 先列要做的事\n\n';
+    if (state.scenario.location || state.scenario.level || state.scenario.discovery) {
+      text += '情境設定\n';
+      if (state.scenario.location) text += '  火災發生地點:' + state.scenario.location + '\n';
+      if (state.scenario.level) text += '  火災等級:' + state.scenario.level + '\n';
+      if (state.scenario.discovery) text += '  發現方式:' + state.scenario.discovery + '\n';
+      text += '\n';
+    }
+    state.categories.forEach((cat, cIdx) => {
+      const items = cat.items.filter(i => i.trim() !== '');
+      if (items.length === 0) return;
+      text += CODES[cIdx % CODES.length] + '｜' + cat.name + '\n';
+      items.forEach((it, i) => {
+        text += '  ' + (i + 1) + '. ' + it + '\n';
+      });
+      text += '\n';
+    });
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      showToast('已複製到剪貼簿');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast('已複製到剪貼簿')).catch(fallback);
+    } else {
+      fallback();
+    }
+  });
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  render();
+</script>
+</body>
+</html>

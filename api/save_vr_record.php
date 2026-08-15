@@ -36,6 +36,7 @@ try {
     $scene = isset($input['scene']) ? (int)$input['scene'] : null;
     $sexual = isset($input['sexual']) ? (int)$input['sexual'] : null;
     $user = $input['user'] ?? null;
+    $difficulty = isset($input['difficulty']) ? (int)$input['difficulty'] : 0; // 若Unity未傳，預設0(普通)
     
     // 如果fake_time是字串，轉換為MySQL DATETIME格式
     if ($fake_time && !empty($fake_time)) {
@@ -46,9 +47,9 @@ try {
     if ($isNew) {
         // 新增記錄
         $sql = "INSERT INTO VR_Player_Record 
-                (objectId, age, fake_time, player_id, press_data, scene, sexual, user) 
+                (objectId, age, fake_time, player_id, press_data, scene, sexual, user, difficulty) 
                 VALUES 
-                (:objectId, :age, :fake_time, :player_id, :press_data, :scene, :sexual, :user)";
+                (:objectId, :age, :fake_time, :player_id, :press_data, :scene, :sexual, :user, :difficulty)";
         
         $stmt = $conn->prepare($sql);
         $stmt->execute([
@@ -59,7 +60,8 @@ try {
             ':press_data' => $press_data,
             ':scene' => $scene,
             ':sexual' => $sexual,
-            ':user' => $user
+            ':user' => $user,
+            ':difficulty' => $difficulty
         ]);
         
         sendResponse(true, 'VR Player Record created successfully', ['objectId' => $objectId], 201);
@@ -72,7 +74,8 @@ try {
                 press_data = :press_data,
                 scene = :scene,
                 sexual = :sexual,
-                user = :user
+                user = :user,
+                difficulty = :difficulty
                 WHERE objectId = :objectId";
         
         $stmt = $conn->prepare($sql);
@@ -84,7 +87,8 @@ try {
             ':press_data' => $press_data,
             ':scene' => $scene,
             ':sexual' => $sexual,
-            ':user' => $user
+            ':user' => $user,
+            ':difficulty' => $difficulty
         ]);
         
         if ($stmt->rowCount() > 0) {

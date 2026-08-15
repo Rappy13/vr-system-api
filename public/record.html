@@ -315,7 +315,7 @@
       <thead>
         <tr class="col-group">
           <th colspan="1"></th>
-          <th colspan="4">基本資訊</th>
+          <th colspan="5">基本資訊</th>
           <th colspan="7" style="color:rgba(255,165,0,.7)">操作評估</th>
           <th colspan="4">滅火結果</th>
           <th colspan="1" style="color:rgba(251,191,36,.8)">綜合評定</th>
@@ -328,6 +328,7 @@
           </th>
           <th class="accent">學員代碼</th>
           <th>場景</th>
+          <th>難易度</th>
           <th>操作次數</th>
           <th>選擇滅火器</th>
           <th>20秒內試噴</th>
@@ -451,6 +452,9 @@ async function doQuery() {
     }
     const licData  = Array.isArray(licJson.data) ? licJson.data[0] : licJson.data;
     if (!licData) { showError(isEmail ? '找不到該 Email，請確認後重試' : '找不到該學員代碼，請確認後重試'); return; }
+    if (isEmail && Array.isArray(licJson.data) && licJson.data.length > 1) {
+      log(`⚠ 此 Email 對應到 ${licJson.data.length} 個序號，系統僅會查詢其中一個，若結果有誤請改用序號查詢`, 'warn');
+    }
     const objectId = licData.objectId;
     if (!objectId) { showError('無法取得學員資料'); return; }
     log(`✔ 找到學員`, 'ok');
@@ -495,6 +499,7 @@ async function doQuery() {
           date:            (rec.fake_time || rec.created_at || date).slice(0,16).replace('T',' '),
           player_id:       rec.player_id || '',
           scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
+          difficulty:      null,
           sub_index:       null,
           count:           0,
           select_fe:       '—',
@@ -558,6 +563,7 @@ async function doQuery() {
           date:            getDisplayTime(gameData, rec),
           player_id:       rec.player_id || '',
           scene:           sceneMap[sceneId] ?? `場景 ${sceneId}`,
+          difficulty:      gameData.difficulty != null ? parseInt(gameData.difficulty) : 0,
           sub_index:       dataItems.length > 1 ? (dataItems.length - j) : null,
           count:           gameData.press_count ?? 0,
           select_fe:       feMap[feId] ?? `滅火器${feId}`,
@@ -701,6 +707,7 @@ function renderTable(resetFilter = true) {
       <td style="font-family:'Rajdhani',sans-serif;font-size:.8rem;color:var(--text)">${esc(r.date)}</td>
       <td style="font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--accent)">${esc(r.player_id)}</td>
       <td>${esc(r.scene)}</td>
+      <td>${difficultyCell(r.difficulty)}</td>
       <td style="font-family:'Rajdhani',sans-serif">第 ${r.sub_index != null ? r.sub_index : 1} 次</td>
       <td>${esc(r.select_fe)}</td>
       <td>${boolCell(r.trial_in_20s)}</td>
@@ -746,6 +753,12 @@ function boolStr(v) {
   if (v === false || v === 0) return '不通過';
   return v ?? '';
 }
+function difficultyCell(v) {
+  if (v === null || v === undefined) return '<span style="color:var(--muted)">—</span>';
+  const n = parseInt(v);
+  if (n === 1) return '<span class="badge badge-fail">困難</span>';
+  return '<span class="badge badge-neutral">普通</span>';
+}
 function distCell(v) {
   if (v === 'N/A' || v === null || v === undefined || v === '') return '<span style="color:var(--muted)">—</span>';
   const n = parseFloat(v);
@@ -768,7 +781,7 @@ function ratingCell(v) {
 
 function exportCSV() {
   if (!lastData) return;
-  const headers = ['#','時間','學員代碼','場景','操作次數','選擇滅火器',
+  const headers = ['#','時間','學員代碼','場景','難易度','操作次數','選擇滅火器',
     '20秒內試噴','有效射程外試噴','試噴距離(m)','最大射程開始滅火','開始滅火距離(m)',
     '油不濺出(全程)','噴射無斷續','滅火成功','完成時間','特殊失誤','其他操作細項','綜合評定'];
   // Only export records whose scene is currently active, sorted by time ascending
@@ -776,7 +789,7 @@ function exportCSV() {
     .filter(r => activeScenes.has(r.scene))
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const rows = filtered.map((r, i) => [
-    i+1, r.date, r.player_id, r.scene, '第'+(r.sub_index != null ? r.sub_index : 1)+'次', r.select_fe,
+    i+1, r.date, r.player_id, r.scene, (r.difficulty === 1 ? '困難' : r.difficulty === 0 ? '普通' : '—'), '第'+(r.sub_index != null ? r.sub_index : 1)+'次', r.select_fe,
     boolStr(r.trial_in_20s), boolStr(r.trial_outside), r.trial_distance,
     boolStr(r.fire_max_range), r.fire_distance, boolStr(r.no_oil_splash), boolStr(r.no_intermittent),
     boolStr(r.is_success), r.kill_time, r.sp_wrong, r.other_details,

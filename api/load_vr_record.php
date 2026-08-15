@@ -36,6 +36,7 @@ try {
             $result['age'] = $result['age'] ? (int)$result['age'] : null;
             $result['scene'] = $result['scene'] ? (int)$result['scene'] : null;
             $result['sexual'] = $result['sexual'] ? (int)$result['sexual'] : null;
+            $result['difficulty'] = isset($result['difficulty']) ? (int)$result['difficulty'] : 0;
             
             sendResponse(true, 'VR Player Record found', $result);
         } else {
@@ -53,6 +54,7 @@ try {
             $result['age'] = $result['age'] ? (int)$result['age'] : null;
             $result['scene'] = $result['scene'] ? (int)$result['scene'] : null;
             $result['sexual'] = $result['sexual'] ? (int)$result['sexual'] : null;
+            $result['difficulty'] = isset($result['difficulty']) ? (int)$result['difficulty'] : 0;
         }
         
         sendResponse(true, 'Found ' . count($results) . ' records', $results);
@@ -68,6 +70,7 @@ try {
             $result['age'] = $result['age'] ? (int)$result['age'] : null;
             $result['scene'] = $result['scene'] ? (int)$result['scene'] : null;
             $result['sexual'] = $result['sexual'] ? (int)$result['sexual'] : null;
+            $result['difficulty'] = isset($result['difficulty']) ? (int)$result['difficulty'] : 0;
         }
         
         sendResponse(true, 'Found ' . count($results) . ' records', $results);
@@ -83,6 +86,7 @@ try {
             $result['age'] = $result['age'] ? (int)$result['age'] : null;
             $result['scene'] = $result['scene'] ? (int)$result['scene'] : null;
             $result['sexual'] = $result['sexual'] ? (int)$result['sexual'] : null;
+            $result['difficulty'] = isset($result['difficulty']) ? (int)$result['difficulty'] : 0;
         }
         
         sendResponse(true, 'Found ' . count($results) . ' records', $results);
@@ -103,6 +107,7 @@ try {
             $result['age'] = $result['age'] ? (int)$result['age'] : null;
             $result['scene'] = $result['scene'] ? (int)$result['scene'] : null;
             $result['sexual'] = $result['sexual'] ? (int)$result['sexual'] : null;
+            $result['difficulty'] = isset($result['difficulty']) ? (int)$result['difficulty'] : 0;
         }
         
         sendResponse(true, 'Found ' . count($results) . ' records', $results);
